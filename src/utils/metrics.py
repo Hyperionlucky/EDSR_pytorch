@@ -53,6 +53,11 @@ class Evaluator(object):
     # def add_batch(self, hr, sr):
     # sr = sr.astype(np.uint8)
 if __name__ == '__main__':
+    hr = torch.tensor([[[[1,5,6],[15,30,90],[40,80,150]]]])
+    sr = torch.randn(16, 1, 192, 192)
+    diff = torch.diff(hr, n=2,dim=3)
+
+
     ev = Evaluator(16)
     for i in range(20):
         hr = torch.randn(16, 1, 192, 192)

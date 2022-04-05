@@ -1,10 +1,7 @@
 import os
-import math
-from decimal import Decimal
 from utils.saver import Saver
 import logging
 import datetime
-import utility
 from utils.metrics import Evaluator
 from data import prefetcher
 from utils.summaries import TensorboardSummary
@@ -26,8 +23,8 @@ class Trainer():
         #print(loader.loader_test)
         self.model = my_model                              #神经网络结构
         self.loss = my_loss                                #损失函数
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr)
-        self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.optimizer, milestones=[200,300], gamma=0.5)     #优化策略
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr, eps=1e-4)
+        self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.optimizer, milestones=self.args.milestones, gamma=self.args.gamma)     #优化策略
         self.current_epoch = 0
         # if self.args.load != '':
         #     self.optimizer.load(ckp.dir, epoch=len(ckp.log))          #获取log文档
@@ -70,45 +67,46 @@ class Trainer():
             # timer_data.hold()
             # timer_model.tic()
             self.optimizer.zero_grad()
+            with torch.autograd.set_detect_anomaly(True):
 
-            sr = self.model(lr, slope)
-            l1_loss,slope_loss = self.loss.L1Loss(sr, hr),self.loss.SlopeLoss(sr,hr)
-            total_loss = l1_loss + slope_loss
-            total_loss.backward()
-            self.optimizer.step()
-            # train_loss = loss
-            # if self.args.gclip > 0:
-            #     utils.clip_grad_value_(
-            #         self.model.parameters(),
-            #         self.args.gclip
-            #     )
-            # self.optimizer.step()
+                sr = self.model(lr, slope)
+                l1_loss,slope_loss = self.loss.L1Loss(sr, hr),self.loss.SlopeLoss(sr,hr)
+                total_loss = l1_loss + slope_loss
+                total_loss.backward()
+                self.optimizer.step()
+                # train_loss = loss
+                # if self.args.gclip > 0:
+                #     utils.clip_grad_value_(
+                #         self.model.parameters(),
+                #         self.args.gclip
+                #     )
+                # self.optimizer.step()
 
-            # timer_model.hold()
+                # timer_model.hold()
 
-            # add different loss every step
-            train_loss += total_loss.item()
-            train_L1_loss += l1_loss.item()
-            train_slope_loss += slope_loss.item()
+                # add different loss every step
+                train_loss += total_loss.item()
+                train_L1_loss += l1_loss.item()
+                train_slope_loss += slope_loss.item()
 
 
-            global_step = i + self.train_iters_epoch * epoch
-            if global_step % 50 == 0:
-                self.summary.visualize_image(self.writer, hr, lr, slope, sr, global_step, mode="train")
-                self.writer.add_scalar("train/train_loss", train_loss/i, i + self.train_iters_epoch * epoch)
-                self.writer.add_scalar("train/train_L1_loss", train_L1_loss/i, i + self.train_iters_epoch * epoch)
-                self.writer.add_scalar("train/train_slope_loss", train_slope_loss/i, i + self.train_iters_epoch * epoch)
-                msg = "%s | Epoch: %d | global_step: %d | lr: %.8f | Train loss_average: %.4f | L1 loss_average: %.4f | slope loss_average: %.4f" %(datetime.datetime.now(), epoch, global_step, learning_rate, train_loss/i, train_L1_loss/i, train_slope_loss/i)
-                print(msg)
-                logging.info(msg=msg)
-            i += 1
-            sr = sr.data.cpu().numpy()
-            hr = hr.data.cpu().numpy()
-            self.train_evaluator.add_batch(sr=sr, hr=hr)
-            # total_loss = l1_loss + slope_loss
-            # del total_loss,sr,l1_loss,slope_loss,hr,lr
-            # torch.cuda.empty_cache()
-            hr,lr,slope = train_prefetcher.next()
+                global_step = i + self.train_iters_epoch * epoch
+                if global_step % 50 == 0:
+                    self.summary.visualize_image(self.writer, hr, lr, slope, sr, global_step, mode="train")
+                    self.writer.add_scalar("train/train_loss", train_loss/i, i + self.train_iters_epoch * epoch)
+                    self.writer.add_scalar("train/train_L1_loss", train_L1_loss/i, i + self.train_iters_epoch * epoch)
+                    self.writer.add_scalar("train/train_slope_loss", train_slope_loss/i, i + self.train_iters_epoch * epoch)
+                    msg = "%s | Epoch: %d | global_step: %d | lr: %.8f | Train loss_average: %.4f | L1 loss_average: %.4f | slope loss_average: %.4f" %(datetime.datetime.now(), epoch, global_step, learning_rate, train_loss/i, train_L1_loss/i, train_slope_loss/i)
+                    print(msg)
+                    logging.info(msg=msg)
+                i += 1
+                sr = sr.data.cpu().numpy()
+                hr = hr.data.cpu().numpy()
+                self.train_evaluator.add_batch(sr=sr, hr=hr)
+                # total_loss = l1_loss + slope_loss
+                # del total_loss,sr,l1_loss,slope_loss,hr,lr
+                # torch.cuda.empty_cache()
+                hr,lr,slope = train_prefetcher.next()
 
             
         mse, psnr, mae, rmse = self.train_evaluator.score(self.num_trainImage)

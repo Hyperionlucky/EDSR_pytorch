@@ -35,6 +35,7 @@ class DemSR(nn.Module):
         self.head = nn.Sequential(*m_head)
         self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
+        common.weight_init(self)
     def forward(self, lr,slope):
         # x = self.sub_mean(x)
         x = torch.cat([lr,slope],dim=1)
@@ -46,4 +47,6 @@ class DemSR(nn.Module):
         x = self.tail(res)
         # x = self.add_mean(x)
 
-        return x 
+        return x
+
+

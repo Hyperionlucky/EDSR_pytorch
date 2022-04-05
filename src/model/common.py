@@ -1,4 +1,6 @@
 import math
+from statistics import mode
+from numpy import isin
 
 import torch
 import torch.nn as nn
@@ -9,6 +11,21 @@ def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(
         in_channels, out_channels, kernel_size,
         padding=(kernel_size // 2), bias=bias)
+
+def weight_init(module):
+    for n,m in module.named_children():
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity = 'relu')
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+        elif isinstance(m , (nn.BatchNorm2d, nn.GroupNorm)):
+            nn.init.ones_(m.weight)
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+        elif isinstance(m, nn.Linear):
+            nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity = 'relu')
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
 
 
 class MeanShift(nn.Conv2d):
