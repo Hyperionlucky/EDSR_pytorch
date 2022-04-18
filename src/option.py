@@ -17,13 +17,15 @@ parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
 
 # Data specifications
-#parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
+# parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=str, default='2',
+parser.add_argument('--scale', type=int, default=3,
                     help='super resolution scale')
 parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
-parser.add_argument('--rgb_range', type=int, default=65535,
+# parser.add_argument('--rgb_range', type=int, default=65535,
+#                     help='maximum value of RGB')
+parser.add_argument('--rgb_range', type=int, default=4294967295,
                     help='maximum value of RGB')
 parser.add_argument('--n_channels', type=int, default=1,
                     help='number of color channels to use')
@@ -31,12 +33,12 @@ parser.add_argument('--chop', action='store_true',
                     help='enable memory-efficient forward')
 parser.add_argument('--no_augment', action='store_true',
                     help='do not use data augmentation')
-parser.add_argument('--traindataset_path',type=str, default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset/train_2x_slope.txt")
-parser.add_argument('--valdataset_path',type=str, default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset/val_2x_slope.txt")
+parser.add_argument('--dataset_dir', type=str,
+                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset_USA/")
 
 
 # Model specifications
-parser.add_argument('--model', default='EDSR',
+parser.add_argument('--model', type=str, default='EDSR',
                     help='model name')
 
 parser.add_argument('--act', type=str, default='relu',
@@ -58,11 +60,13 @@ parser.add_argument('--dilation', action='store_true',
 parser.add_argument('--precision', type=str, default='single',
                     choices=('single', 'half'),
                     help='FP precision for test (single | half)')
-
-
+parser.add_argument('--test_only',  default=False, help='is test or not')
+parser.add_argument('--resume', type=str,
+                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X3/EDSR/experiment_4/checkpoint.pth", help='checkpoint name')
+# parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
 # Training specifications
 
-parser.add_argument('--epochs', type=int, default=1000,
+parser.add_argument('--epochs', type=int, default=600,
                     help='number of epochs to train')
 parser.add_argument('--batch_size', type=int, default=16,
                     help='input batch size for training')
@@ -74,31 +78,26 @@ parser.add_argument('--workers', type=int, default=8)
 # Optimization specifications
 parser.add_argument('--lr', type=float, default=1e-4,
                     help='learning rate')
-parser.add_argument('--milestones', type=list, default=[200,300],
+parser.add_argument('--milestones', type=list, default=[200, 300, 400],
                     help='learning rate decay type')
 parser.add_argument('--gamma', type=float, default=0.5,
                     help='learning rate decay factor for step decay')
-
+parser.add_argument('--optimizer', default='ADAM',
+                    choices=('SGD', 'ADAM', 'RMSprop'))
 parser.add_argument('--epsilon', type=float, default=1e-8,
                     help='ADAM epsilon for numerical stability')
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[1,1],
+parser.add_argument('--loss_weight', type=list, default=[1, 1],
                     help='loss function weight')
 
 # Log specifications
 
-parser.add_argument('--resume', type=int, default=0,
-                    help='resume from specific checkpoint')
 
-parser.add_argument('--checkpoint_name', type=str, default='EDSR')
+# parser.add_argument('--checkpoint_name', type=str, default='Bicubic')
 args = parser.parse_args()
 template.set_template(args)
-
-args.scale = list(map(lambda x: int(x), args.scale.split('+')))
-
-
 
 
 for arg in vars(args):
@@ -106,4 +105,3 @@ for arg in vars(args):
         vars(args)[arg] = True
     elif vars(args)[arg] == 'False':
         vars(args)[arg] = False
-

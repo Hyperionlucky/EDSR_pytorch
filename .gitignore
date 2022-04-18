@@ -1,5 +1,5 @@
 __pycache__
-
+.vscode
 src_2
 
 src3
@@ -10,5 +10,7 @@ src7
 src8
 Dataset/*
 experiments_lp/*
+experiments/*
 logs/*
 experiments_USA/*
+Dataset_USA/*

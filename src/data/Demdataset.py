@@ -1,14 +1,12 @@
 import cv2
 from torch.utils.data import Dataset, DataLoader
-from PIL import Image
-
 import numpy as np
 from data.utils import transform
 import random
 
 
 class Demdataset(Dataset):
-    def __init__(self, datapath, mode="train", scale=96, reverse=False):
+    def __init__(self, datapath, mode="train", crop_size = 96, scale=2, reverse=False):
         super(Demdataset, self).__init__()
         self.mode = mode
         with open(datapath, "r", errors='ignore') as lines:
@@ -17,7 +15,7 @@ class Demdataset(Dataset):
                 hr_path = line.strip().split(" ")[0]
                 lr_path = line.strip().split(" ")[1]
                 slope_path = line.strip().split(" ")[2]
-                # label2_path = line.strip().split(" ")[3]
+                assert hr_path.split("_")[-1].split(".")[0] == lr_path.split("_")[-1].split(".")[0] == slope_path.split("_")[-1].split(".")[0]
                 self.samples.append([hr_path, lr_path, slope_path])
         self.samples.sort()
         if mode == "train":
@@ -27,10 +25,10 @@ class Demdataset(Dataset):
                                                transform.Totensor())
             self.reverse = reverse
 
-            self.transform_scale = transform.Compose(transform.RandomScaleCrop(crop_size=scale),
+            self.transform_scale = transform.Compose(transform.RandomScaleCrop(crop_size=crop_size, scale=scale),
                                                      transform.RandomHorizontalFlip(),
                                                      transform.RandomVerticalFlip(),
-                                                     transform.RandomRotation(),
+                                                    #  transform.RandomRotation(),
                                                      transform.Totensor())
 
         if mode == "val":

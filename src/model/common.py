@@ -1,6 +1,6 @@
 import math
 from statistics import mode
-from numpy import isin
+from numpy import identity, isin
 
 import torch
 import torch.nn as nn
@@ -11,10 +11,12 @@ def default_conv(in_channels, out_channels, kernel_size, bias=True):
     return nn.Conv2d(
         in_channels, out_channels, kernel_size,
         padding=(kernel_size // 2), bias=bias)
+def conv_3d(inchannels, out_channels, kernel_size, padding,bias = True):
+    return nn.Conv3d(in_channels=inchannels, out_channels=out_channels, kernel_size=kernel_size, padding=padding, stride =1, dilation=1,bias=bias)
 
 def weight_init(module):
     for n,m in module.named_children():
-        if isinstance(m, nn.Conv2d):
+        if isinstance(m, (nn.Conv2d,nn.Conv3d)):
             nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity = 'relu')
             if m.bias is not None:
                 nn.init.zeros_(m.bias)
@@ -55,6 +57,35 @@ class BasicBlock(nn.Sequential):
         super(BasicBlock, self).__init__(*m)
 
 
+class nResBlock(nn.Module):
+    def __init__(
+            self, conv, n_feats, key_feats, kernel_size,
+            bias=True, bn=False, act=nn.ReLU(True), res_scale=1):
+
+        super(nResBlock, self).__init__()
+        m = []
+        m.append(conv(key_feats, n_feats, kernel_size, bias=bias))
+        if bn:
+            m.append(nn.BatchNorm2d(n_feats))
+
+        self.body = nn.Sequential(
+            conv(n_feats, key_feats,1,bias=True),
+            act,
+            conv(key_feats, key_feats,3,bias=True),
+            act,
+            conv(key_feats,n_feats,1,bias=True)
+        )
+        self.res_scale = res_scale
+        self.act = act
+
+    def forward(self, x):
+        # res = self.body(x).mul(self.res_scale)
+        input_x = x
+        res = self.body(x)
+        res += input_x
+        
+        return self.act(res)
+
 class ResBlock(nn.Module):
     def __init__(
             self, conv, n_feats, kernel_size,
@@ -77,7 +108,6 @@ class ResBlock(nn.Module):
         res += x
 
         return res
-
 class MResBlock(nn.Module):
     def __init__(
             self, conv, n_feats, kernel_size,
