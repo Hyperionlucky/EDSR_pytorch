@@ -6,7 +6,7 @@ import torch
 class Saver(object):
     def __init__(self,args) -> None:
         self.args = args
-        self.directory = os.path.join('experiments_USA', 'X'+str(args.scale),args.model.upper())
+        self.directory = os.path.join('experiments_lp', 'X'+str(args.scale),args.model.upper())
         self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))
         run_id = 0
         if self.runs:

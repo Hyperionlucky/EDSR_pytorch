@@ -19,22 +19,18 @@ parser.add_argument('--seed', type=int, default=1,
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=int, default=3,
+parser.add_argument('--scale', type=int, default=2,
                     help='super resolution scale')
 parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
-# parser.add_argument('--rgb_range', type=int, default=65535,
-#                     help='maximum value of RGB')
-parser.add_argument('--rgb_range', type=int, default=4294967295,
+parser.add_argument('--rgb_range', type=int, default=65535,
                     help='maximum value of RGB')
+# parser.add_argument('--rgb_range', type=int, default=4294967295,
+                    # help='maximum value of RGB')
 parser.add_argument('--n_channels', type=int, default=1,
                     help='number of color channels to use')
-parser.add_argument('--chop', action='store_true',
-                    help='enable memory-efficient forward')
-parser.add_argument('--no_augment', action='store_true',
-                    help='do not use data augmentation')
 parser.add_argument('--dataset_dir', type=str,
-                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset_USA/")
+                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset/")
 
 
 # Model specifications
@@ -62,8 +58,22 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--test_only',  default=False, help='is test or not')
 parser.add_argument('--resume', type=str,
-                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X3/EDSR/experiment_4/checkpoint.pth", help='checkpoint name')
+                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_lp/X2/EDSR/experiment_3/checkpoint.pth", help='checkpoint name')
 # parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
+# DRN model config
+parser.add_argument('--n_blocks', type=int, default=40, help="number of DRN blocks")
+parser.add_argument('--n_feats', type=int, default=20, help='channels of DRN features ')
+parser.add_argument('--eta_min', type=float, default=1e-7,
+                    help='eta_min lr')
+
+parser.add_argument('--beta1', type=float, default=0.9,
+                    help='ADAM beta1')
+parser.add_argument('--beta2', type=float, default=0.999,
+                    help='ADAM beta2')
+parser.add_argument('--weight_decay', type=float, default=0,
+                    help='weight decay')
+parser.add_argument('--dual_weight', type=float, default=0.1,
+                    help='the weight of dual loss')                    
 # Training specifications
 
 parser.add_argument('--epochs', type=int, default=600,
@@ -89,7 +99,7 @@ parser.add_argument('--epsilon', type=float, default=1e-8,
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[1, 1],
+parser.add_argument('--loss_weight', type=list, default=[1,0],
                     help='loss function weight')
 
 # Log specifications

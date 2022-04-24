@@ -39,6 +39,9 @@ def main():
     if args.model == "EDSR_Slope":
         from model.DemSR import DemSR
         _model = DemSR(args)
+    if args.model == "DRN":
+        from model.drn import DRN
+        _model = DRN(args=args)
     if args.model == "EDSR":
         from model.Edsr import EDSR
         _model = EDSR(args)

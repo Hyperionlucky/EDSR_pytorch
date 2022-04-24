@@ -12,7 +12,7 @@ class TensorboardSummary(object):
         writer = SummaryWriter(logdir=self.directory)
         return writer
 
-    def visualize_image(self, writer, hr, lr, slope, sr, global_step, mode):
+    def visualize_image(self, writer, hr, lr, sr, global_step, mode):
         hr = hr.float()
         hr = hr[:4]
         grid_hr = make_grid(hr, padding=50, normalize=True)
@@ -28,7 +28,7 @@ class TensorboardSummary(object):
         grid_sr = make_grid(sr, padding=50, normalize=True)
         writer.add_image(os.path.join(mode, 'sr'), grid_sr, global_step)
 
-        slope = slope.float()
-        slope = slope[:4]
-        grid_slope = make_grid(slope, padding=50, normalize=True)
-        writer.add_image(os.path.join(mode, 'slope'), grid_slope, global_step)
+        # slope = slope.float()
+        # slope = slope[:4]
+        # grid_slope = make_grid(slope, padding=50, normalize=True)
+        # writer.add_image(os.path.join(mode, 'slope'), grid_slope, global_step)

@@ -104,7 +104,7 @@ class ResBlock(nn.Module):
         self.res_scale = res_scale
 
     def forward(self, x):
-        res = self.body(x).mul(self.res_scale)
+        res = self.body(x)
         res += x
 
         return res
@@ -171,3 +171,77 @@ class Upsampler(nn.Sequential):
             raise NotImplementedError
 
         super(Upsampler, self).__init__(*m)
+
+class CALayer(nn.Module):
+    def __init__(self, channel, reduction=16):
+        super(CALayer, self).__init__()
+        # global average pooling: feature --> point
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        # feature channel downscale and upscale --> channel weight
+        self.conv_du = nn.Sequential(
+                nn.Conv2d(channel, channel // reduction, 1, padding=0, bias=True),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(channel // reduction, channel, 1, padding=0, bias=True),
+                nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        y = self.avg_pool(x)
+        y = self.conv_du(y)
+        return x * y
+
+
+## Residual Channel Attention Block (RCAB)
+class RCAB(nn.Module):
+    def __init__(self, conv, n_feat, kernel_size, reduction=16, bias=True, bn=False, act=nn.ReLU(True), res_scale=1):
+        super(RCAB, self).__init__()
+        modules_body = []
+        for i in range(2):
+            modules_body.append(conv(n_feat, n_feat, kernel_size, bias=bias))
+            if bn: modules_body.append(nn.BatchNorm2d(n_feat))
+            if i == 0: modules_body.append(act)
+        modules_body.append(CALayer(n_feat, reduction))
+        self.body = nn.Sequential(*modules_body)
+        self.res_scale = res_scale
+
+    def forward(self, x):
+        res = self.body(x)
+        res += x
+        return res
+class DownBlock(nn.Module):
+    def __init__(self, opt, nFeat=None, in_channels=None, out_channels=None):
+        super(DownBlock, self).__init__()
+        negval = 0.2
+
+        if nFeat is None:
+            nFeat = opt.n_feats
+        
+        if in_channels is None:
+            in_channels = opt.n_channels
+        
+        if out_channels is None:
+            out_channels = opt.n_channels
+
+        
+        self.dual_block = nn.Sequential(
+                nn.Conv2d(in_channels, nFeat, kernel_size=3, stride=2, padding=1, bias=False),
+                nn.LeakyReLU(negative_slope=negval, inplace=True),
+                nn.Conv2d(nFeat, out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+            )
+        
+
+        # for _ in range(1, int(math.log2(scale))):
+        #     dual_block.append(
+        #         nn.Sequential(
+        #             nn.Conv2d(nFeat, nFeat, kernel_size=3, stride=2, padding=1, bias=False),
+        #             nn.LeakyReLU(negative_slope=negval, inplace=True)
+        #         )
+        #     )
+
+        # dual_block.append(nn.Conv2d(nFeat, out_channels, kernel_size=3, stride=1, padding=1, bias=False))
+
+        # self.dual_module = dual_block
+
+    def forward(self, x):
+        x = self.dual_block(x)
+        return x

@@ -63,6 +63,8 @@ class Evaluator(object):
     # def add_batch(self, hr, sr):
     # sr = sr.astype(np.uint8)
 if __name__ == '__main__':
+    for i in range(1,1):
+        i = 1
     ev = Evaluator(16, 65535)
     for i in range(20):
         hr = np.random.randn(16, 1, 192, 192)
