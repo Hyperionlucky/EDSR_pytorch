@@ -2,17 +2,19 @@
 # from asyncio.log import logger
 # import logging
 import time
+
 import torch
+from thop import profile
+from thop import clever_format
+from torch.utils.data import DataLoader
 
 # import utility
 # import data
 import model
-from loss.losses import Loss
 from data.Demdataset import Demdataset
-from torch.utils.data import DataLoader
-
+from loss.losses import Loss
 from option import args
-from trainer import Trainer
+from train_DRN import Trainer
 
 torch.manual_seed(args.seed)
 # checkpoint = utility.checkpoint(args)
@@ -48,7 +50,9 @@ def main():
     if args.model in ["nearest","bilinear","bicubic"]:
         from model.benchmark import Benchmark
         _model = Benchmark(args=args)
-        
+    if args.model == "RFAN":
+        from model.rfan import RFAN
+        _model = RFAN(args=args) 
     # print(_model)
     _loss = Loss(weight=[1, 1])
     t = Trainer(args, loader, _model, _loss)
@@ -64,6 +68,11 @@ def main():
     else:
         t.test()
     # t.writer.add_graph(t.model, (torch.randn(1,1,48,48).cuda(),torch.randn(1,1,48,48).cuda()))
+    lr = torch.randn(16,1,64,64).cuda()
+    slope = torch.randn(16,1,64,64).cuda()
+    flops, params = profile(t.model, (lr,slope,))
+    flops,params = clever_format([flops, params],"%.2f")
+    print('\nFLOPs: ',flops, 'Params: ', params)
     t.writer.close()
     # checkpoint.done()
 

@@ -30,8 +30,10 @@ class DRN(nn.Module):
         self.down = nn.ModuleList(self.down)
 
 
-        up_RCAB_blocks = [[common.RCAB(conv=conv, n_feat=n_features * (2**p), kernel_size=3, act=act) for _ in range(n_blocks)] for p in range(self.scale_factor, 1, -1)]
-        up_RCAB_blocks.insert(0, [common.RCAB(conv=conv, n_feat=n_features * (2**self.scale_factor), kernel_size=3, act=act) for _ in range(n_blocks)])
+        # up_RCAB_blocks = [[common.RCAB(conv=conv, n_feat=n_features * (2**p), kernel_size=3, act=act) for _ in range(n_blocks)] for p in range(self.scale_factor, 1, -1)]
+        # up_RCAB_blocks.insert(0, [common.RCAB(conv=conv, n_feat=n_features * (2**self.scale_factor), kernel_size=3, act=act) for _ in range(n_blocks)])
+        up_RCAB_blocks = [[common.RFA(conv=conv, n_features=n_features * (2**p)) for _ in range(4)] for p in range(self.scale_factor, 1, -1)]
+        up_RCAB_blocks.insert(0, [common.RFA(conv=conv, n_features=n_features * (2**self.scale_factor)) for _ in range(4)])
         # define body module
         upsample_blocks = [[common.Upsampler(conv, 2, n_feats=n_features*pow(2, self.scale_factor),act=False), conv(n_features*pow(2, self.scale_factor),n_features*pow(2, self.scale_factor-1),kernel_size=1)]]
         for p in range(self.scale_factor - 1, 0 ,-1):

@@ -23,32 +23,28 @@ class Trainer():
         self.loss = my_loss
         self.current_epoch = 0
         self.optimizer = None
+        self.lr_scheduler = None
         if not args.test_only:                                #损失函数
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr)
-            # self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer=self.optimizer, milestones=self.args.milestones, gamma=self.args.gamma)     #优化策略
+            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr,betas=[args.beta1,args.beta2], eps=args.epsilon)
+            self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,args.epochs,args.eta_min)            
         if args.resume is not None:
             checkpoint = torch.load(args.resume, map_location='cpu')
             self.model.load_state_dict(checkpoint['state_dict'])
             self.current_epoch = checkpoint['epoch']
             if self.optimizer is not None:
                 self.optimizer.load_state_dict(checkpoint['optimizer'])
+                self.lr_scheduler.load_state_dict(checkpoint["scheduler"])
                 for state in self.optimizer.state.values():
                     for k,v in state.items():
                         if torch.is_tensor(v):
                             state[k] = v.cuda()
-            # self.optimizer = self.optimizer.cuda()
-        
-        # if self.args.load != '':
-        #     self.optimizer.load(ckp.dir, epoch=len(ckp.log))          #获取log文档
 
         self.best_pred = 1e6
-
         self.summary = TensorboardSummary(directory=self.saver.experiment_dir)
         logging.basicConfig(filename=os.path.join(self.saver.experiment_dir, "train.log"), filemode="w", level=logging.INFO, format="%(levelname)s:%(asctime)s:%(message)s")
         self.writer = self.summary.create_summart()
         self.train_iters_epoch = len(self.loader_train)
         self.val_iters_epoch = len(self.loader_test)
-        self.total_iters = 500 * self.train_iters_epoch
         self.train_evaluator = Evaluator(self.args.batch_size,self.args.rgb_range)
         self.val_evaluator = Evaluator(self.args.test_batch_size,self.args.rgb_range)
 
@@ -57,25 +53,15 @@ class Trainer():
 
     def train(self,epoch):
 
-        # self.ckp.write_log(
-        #     '[Epoch {}]\tLearning rate: {:.2e}'.format(epoch, Decimal(learning_rate))
-        # )
-        # self.loss.start_log()
-        learning_rate = self.optimizer.param_groups[0]['lr']
         train_loss = 0.0
         train_L1_loss = 0.0
         train_slope_loss = 0.0
         self.train_evaluator.reset()
         self.model.train()                                         #设置train属性为true
-        # timer_data, timer_model = utility.timer(), utility.timer()
-        # TEMP
         train_prefetcher = prefetcher.DataPrefetcher(self.loader_train)
         hr,lr,slope = train_prefetcher.next()
-        # self.loader_train.dataset.set_scale(0)                     #设置训练尺度
         i = 1
         while hr is not None:
-            # timer_data.hold()
-            # timer_model.tic()
             self.optimizer.zero_grad()
             # with torch.autograd.set_detect_anomaly(True):
 
@@ -86,28 +72,13 @@ class Trainer():
             total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
             total_loss.backward()
             self.optimizer.step()
-            # train_loss = loss
-            # if self.args.gclip > 0:
-            #     utils.clip_grad_value_(
-            #         self.model.parameters(),
-            #         self.args.gclip
-            #     )
-            # self.optimizer.step()
-
-            # timer_model.hold()
-
-            # add different loss every step
             train_loss += total_loss.item()
             train_L1_loss += l1_loss.item()
             train_slope_loss += slope_loss.item()
 
 
             global_step = i + self.train_iters_epoch * epoch
-            if epoch < 500:
-                learning_rate = self.args.lr * (1 - global_step/self.total_iters) ** 0.9
-                self.optimizer.param_groups[0]["lr"] = learning_rate if learning_rate > self.args.lr * 0.1 else 1e-5
-            else:
-                self.optimizer.param_groups[0]["lr"] = self.args.lr * 0.1
+            
             if global_step % 50 == 0:
                 self.summary.visualize_image(self.writer, hr, lr,  sr, global_step, mode="train")
                 self.writer.add_scalar("train/train_loss", train_loss/i, i + self.train_iters_epoch * epoch)
@@ -120,9 +91,6 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             self.train_evaluator.add_batch(sr=sr, hr=hr)
-            # total_loss = l1_loss + slope_loss
-            # del total_loss,sr,l1_loss,slope_loss,hr,lr
-            # torch.cuda.empty_cache()
             hr,lr,slope = train_prefetcher.next()
 
             
@@ -152,31 +120,22 @@ class Trainer():
         logging.info('Loss: %.3f' %(train_loss / i))
         logging.info("\nParams: %.2fM" %(params_num / 1e6))
 
-        # self.lr_scheduler.step()
+        self.lr_scheduler.step()
 
-        # torch.cuda.empty_cache()
 
     def test(self, epoch=0):
         val_loss = 0.0
         val_L1_loss = 0.0
         val_slope_loss = 0.0
         self.val_evaluator.reset()
-        # epoch = self.current_epochs
-        # self.ckp.write_log('\nEvaluation:')
-        # self.ckp.add_log(
-            # torch.zeros(1, len(self.loader_test), len(self.scale))
-        # )
         self.model.eval()                                            #设置train为false
 
-        # timer_test = utility.timer()
-        # if self.args.save_results: self.ckp.begin_background()
         val_prefetcher = prefetcher.DataPrefetcher(self.loader_test)
         hr,lr,slope = val_prefetcher.next()
         i = 1
         while hr is not None:
             with torch.no_grad():
                 sr = self.model(lr,slope)
-                # save_list = [sr]
                 l1_loss,slope_loss = self.loss.L1Loss(sr, hr),self.loss.SlopeLoss(sr,hr)
                 # total_loss = l1_loss + slope_loss
             # val_loss += total_loss.item()
@@ -214,8 +173,6 @@ class Trainer():
             params_num = sum(p.numel() for p in self.model.parameters())
             print('Loss: %.3f' % (val_loss/i))
             print("\nParams: %.2fM" %(params_num / 1e6))
-            # self.loss.end_log(len(self.loader_train))
-            # self.error_last = self.loss.log[-1, -1]
             logging.info('Loss: %.3f' %(val_loss / i))
             logging.info("\nParams: %.2fM" %(params_num / 1e6))
             new_pred = mae
@@ -225,8 +182,6 @@ class Trainer():
                 self.saver.save_checkpoint({'epoch': epoch + 1,
                 'state_dict': self.model.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
+                'scheduler': self.lr_scheduler.state_dict(),
                 'best_pred': self.best_pred}, is_best=is_best)
-
-        # self.writer.close()
-        # torch.set_grad_enabled(True)
 
