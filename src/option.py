@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=int, default=2,
+parser.add_argument('--scale', type=int, default=4,
                     help='super resolution scale')
 parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
@@ -34,7 +34,7 @@ parser.add_argument('--dataset_dir', type=str,
 
 
 # Model specifications
-parser.add_argument('--model', type=str, default='CSNLN',
+parser.add_argument('--model', type=str, default='RFAN',
                     help='model name')
 
 parser.add_argument('--act', type=str, default='relu',
@@ -105,7 +105,7 @@ parser.add_argument('--epsilon', type=float, default=1e-8,
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[1,4],
+parser.add_argument('--loss_weight', type=list, default=[1,1],
                     help='loss function weight')
 parser.add_argument('--isDual', type=bool, default=False)
 # Log specifications

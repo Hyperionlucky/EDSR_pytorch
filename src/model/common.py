@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from model.utils.attention import CrossScaleAttention,NonLocalAttention
 
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
@@ -304,7 +305,9 @@ class ERes(nn.Module):
             conv(n_features, n_features, 3),
             nn.ReLU(True),
             conv(n_features, n_features, 3),
-            ESA(conv, n_features)
+            # enhanced spatial attention
+            # ESA(conv, n_features)
+            NonLocalAttention(channel=n_features)
         )
 
     def forward(self, x):

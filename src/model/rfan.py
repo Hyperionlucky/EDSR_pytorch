@@ -3,6 +3,9 @@ from model import common
 
 
 import torch.nn as nn
+
+def make_model(args):
+    return RFAN(args)
 class RFAN(nn.Module):
     def __init__(self, args) -> None:
         super(RFAN, self).__init__()
