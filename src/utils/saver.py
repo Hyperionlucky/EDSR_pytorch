@@ -6,7 +6,7 @@ import torch
 class Saver(object):
     def __init__(self,args) -> None:
         self.args = args
-        self.directory = os.path.join('experiments_lp', 'X'+str(args.scale),args.model.upper())
+        self.directory = os.path.join('experiments_USA', 'X'+str(args.scale),args.model.upper())
         self.runs = sorted(glob.glob(os.path.join(self.directory, 'experiment_*')))
         run_id = 0
         if self.runs:
@@ -37,8 +37,9 @@ class Saver(object):
         p['workers'] = self.args.workers
         p['epochs'] = self.args.epochs
         p['scale'] = self.args.scale
-        p['loss'] = str(self.args.loss_weight[0]) + ' *L1 Loss   ' + str(self.args.loss_weight[1]) + ' *Slopeloss'
+        p['loss'] = str(self.args.loss_weight[0]) + ' *FLOW LINE   ' + str(self.args.loss_weight[1]) + ' *NOT FLOW'
         p['patch_size'] = self.args.patch_size
+        p['dual'] = self.args.isDual
         for key,val in p.items():
             log_file.write(key+":"+str(val)+"\n")
         log_file.close()

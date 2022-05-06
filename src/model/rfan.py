@@ -22,9 +22,10 @@ class RFAN(nn.Module):
         m_body = [                                                                #残差块
             common.RFA(conv, n_features)
          for _ in range(self.n_rfanblocks)]             #卷积层
-        m_body.append(conv(n_features, n_features, 3))    
+        # m_body.append()    
         # define tail module
         m_tail = [
+            conv(n_features, n_features, 3),
             common.Upsampler(conv, scale, n_features, act=False),
             conv(n_features, args.n_channels, 3)
         ]
@@ -33,7 +34,7 @@ class RFAN(nn.Module):
         self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
         common.weight_init(self)
-    def forward(self, lr,slope):
+    def forward(self, lr):
         # x = self.sub_mean(x)
         # x = lr
         x = self.head(lr)

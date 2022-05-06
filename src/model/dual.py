@@ -14,9 +14,9 @@ class Dual(nn.Module):
 
         # act = nn.ReLU(True)
 
-        # scale = args.scale
+        scale = args.scale
         # self.scale_factor = int(math.log2(scale))
-        self.dual_model = common.DownBlock(args,2)
+        self.dual_model = common.DownBlock(args, scale)
         common.weight_init(self)
 
     def forward(self, x):

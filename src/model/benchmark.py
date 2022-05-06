@@ -6,7 +6,7 @@ class Benchmark(nn.Module):
         super(Benchmark, self).__init__()
         self.scale = args.scale
         self.method = args.model
-    def forward(self, lr, slope):
+    def forward(self, lr):
         # H,W = lr.size(2), lr.size(3)
         sr = F.interpolate(lr.float(), scale_factor=self.scale, mode=self.method)
         return sr

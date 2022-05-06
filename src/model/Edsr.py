@@ -36,7 +36,7 @@ class EDSR(nn.Module):
         self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
         common.weight_init(self)
-    def forward(self, lr,slope):
+    def forward(self, lr):
         # x = self.sub_mean(x)
         # x = lr
         x = self.head(lr)

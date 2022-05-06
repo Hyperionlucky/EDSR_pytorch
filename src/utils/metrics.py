@@ -1,5 +1,4 @@
 from unittest import result
-from matplotlib.pyplot import axis
 import numpy as np
 import math
 
@@ -21,22 +20,24 @@ class Evaluator(object):
         result = [ np.sum(i) / num for i in self.metric_matrix]
         return result
 
-    def __generate_matrix(self, diff):
+    def __generate_matrix(self, diff, flow):
         mse = np.mean(diff ** 2, axis=(2, 3))
         # if np.max(mse) > 100:
         #     i = 1
         psnr = -10 * np.log10(mse/(self.rgb_range**2))
         mae = np.mean((np.abs(diff)), axis=(2, 3))
         rmse = np.sqrt(mse)
+        flow_mae = np.mean((np.abs(diff * flow)), axis=(2,3))
         e_max = np.max(np.abs(diff), axis=(2, 3))
-        return [mse, mae, rmse, e_max, psnr]
+        return [mse, mae, rmse, e_max, flow_mae, psnr]
 
-    def add_batch(self, sr, hr):
+    def add_batch(self, sr, hr, flow):
         assert hr.shape == sr.shape
-        slope_mae = self.cac_slope_mae(sr, hr)
+        # slope_mae = self.cac_slope_mae(sr, hr)
         diff = (hr - sr)[:, :, 2:-2, 2:-2]
-        matrix = self.__generate_matrix(diff=diff)
-        matrix.insert(4, slope_mae)
+        flow = flow[:, :, 2:-2, 2:-2]
+        matrix = self.__generate_matrix(diff=diff, flow=flow)
+        # matrix.insert(4, slope_mae)
         self.metric_matrix = [i + j for i,j in zip(self.metric_matrix, matrix)]
 
     def reset(self):
@@ -63,6 +64,10 @@ class Evaluator(object):
     # def add_batch(self, hr, sr):
     # sr = sr.astype(np.uint8)
 if __name__ == '__main__':
+    a = np.random.randn(16,1,192,192)
+    b = a[:,:,:,:]
+    a[a>0.5] = 1
+    a[a<=0.5] = 0
     for i in range(1,1):
         i = 1
     ev = Evaluator(16, 65535)

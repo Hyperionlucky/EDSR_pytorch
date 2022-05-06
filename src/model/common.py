@@ -222,7 +222,7 @@ class RCAB(nn.Module):
 
 
 class DownBlock(nn.Module):
-    def __init__(self, opt, nFeat=None, in_channels=None, out_channels=None):
+    def __init__(self, opt, scale, nFeat=None, in_channels=None, out_channels=None):
         super(DownBlock, self).__init__()
         negval = 0.2
 
@@ -234,10 +234,19 @@ class DownBlock(nn.Module):
 
         if out_channels is None:
             out_channels = opt.n_channels
-
-        self.dual_block = nn.Sequential(
+        m = []
+        if (scale & (scale - 1)) == 0:
+            for _ in range(int(math.log(scale, 2))):
+                m.append(nn.Conv2d(in_channels, nFeat, kernel_size=3,
+                      stride=2, padding=1, bias=False)),
+                m.append(nn.LeakyReLU(negative_slope=negval, inplace=True)),
+                m.append(nn.Conv2d(nFeat, out_channels, kernel_size=3,
+                      stride=1, padding=1, bias=False))
+                self.dual_block = nn.Sequential(*m)
+        elif scale == 3:
+            self.dual_block = nn.Sequential(
             nn.Conv2d(in_channels, nFeat, kernel_size=3,
-                      stride=2, padding=1, bias=False),
+                      stride=3, padding=1, bias=False),
             nn.LeakyReLU(negative_slope=negval, inplace=True),
             nn.Conv2d(nFeat, out_channels, kernel_size=3,
                       stride=1, padding=1, bias=False)
@@ -277,14 +286,14 @@ class ESA(nn.Module):
             *conv_group,
         )
         self.conv_du = nn.Sequential(
-            conv(channel//reduction, channel, 1, bias=True),
+            conv(2 * channel//reduction, channel, 1, bias=True),
             nn.Sigmoid()
         )
 
     def forward(self, x):
         feature = self.channel_reduction(x)
         feature_conv = self.conv_sa(feature)
-        feature_sa = self.conv_du(feature+feature_conv)
+        feature_sa = self.conv_du(torch.cat([feature,feature_conv], dim=1))
         return feature_sa*x
 
 

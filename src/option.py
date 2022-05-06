@@ -19,9 +19,9 @@ parser.add_argument('--seed', type=int, default=1,
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=int, default=4,
+parser.add_argument('--scale', type=int, default=2,
                     help='super resolution scale')
-parser.add_argument('--patch_size', type=int, default=192,
+parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
 parser.add_argument('--rgb_range', type=int, default=65535,
                     help='maximum value of RGB')
@@ -30,11 +30,11 @@ parser.add_argument('--rgb_range', type=int, default=65535,
 parser.add_argument('--n_channels', type=int, default=1,
                     help='number of color channels to use')
 parser.add_argument('--dataset_dir', type=str,
-                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset/")
+                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset_USA/")
 
 
 # Model specifications
-parser.add_argument('--model', type=str, default='DRN',
+parser.add_argument('--model', type=str, default='CSNLN',
                     help='model name')
 
 parser.add_argument('--act', type=str, default='relu',
@@ -58,7 +58,7 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--test_only',  default=False, help='is test or not')
 # parser.add_argument('--resume', type=str,
-                    # default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_lp/X2/EDSR/experiment_3/checkpoint.pth", help='checkpoint name')
+                    # default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X3/EDSR/experiment_1/checkpoint.pth", help='checkpoint name')
 parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
 # DRN model config
 parser.add_argument('--n_blocks', type=int, default=40, help="number of DRN blocks")
@@ -68,12 +68,18 @@ parser.add_argument('--eta_min', type=float, default=1e-7,
 
 parser.add_argument('--beta1', type=float, default=0.9,
                     help='ADAM beta1')
-parser.add_argument('--beta2', type=float, default=0.999,
+parser.add_argument('--beta2', type=float, default=0.99,
                     help='ADAM beta2')
 parser.add_argument('--weight_decay', type=float, default=0,
                     help='weight decay')
 parser.add_argument('--dual_weight', type=float, default=0.1,
-                    help='the weight of dual loss')                    
+                    help='the weight of dual loss')
+
+# RNN config
+parser.add_argument('--depth', type=int, default=12,
+                    help='number of residual groups')
+parser.add_argument('--n_feats_RNN', type=int, default=128,
+                    help='number of feature maps')                                        
 # Training specifications
 
 parser.add_argument('--epochs', type=int, default=1000,
@@ -88,7 +94,7 @@ parser.add_argument('--workers', type=int, default=8)
 # Optimization specifications
 parser.add_argument('--lr', type=float, default=1e-4,
                     help='learning rate')
-parser.add_argument('--milestones', type=list, default=[200, 300, 400],
+parser.add_argument('--milestones', type=list, default=[400, 600, 800],
                     help='learning rate decay type')
 parser.add_argument('--gamma', type=float, default=0.5,
                     help='learning rate decay factor for step decay')
@@ -99,9 +105,9 @@ parser.add_argument('--epsilon', type=float, default=1e-8,
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[1,0],
+parser.add_argument('--loss_weight', type=list, default=[1,4],
                     help='loss function weight')
-
+parser.add_argument('--isDual', type=bool, default=False)
 # Log specifications
 
 

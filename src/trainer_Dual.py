@@ -6,8 +6,9 @@ from utils.metrics import Evaluator
 from data import prefetcher
 from utils.summaries import TensorboardSummary
 import torch
-import math
 from model.dual import Dual
+from thop import profile
+from thop import clever_format
 
 class Trainer():
     def __init__(self, args, loader, my_model, my_loss):
@@ -18,14 +19,14 @@ class Trainer():
         # self.ckp = ckp
         self.loader_train = loader['loader_train']           #获取训练数据集
         self.loader_test = loader['loader_test']
+        # self.loader_train_extend = loader['loader_train_extend']
         self.num_trainImage = loader["num_train"]
         self.num_valImage = loader["num_val"]             #获取测试数据
-        #print(loader.loader_test)
+        # self.num_trainImage_extend = loader["num_train_extend"]
         self.model = my_model
         self.dual_model = Dual(args=args).cuda()
-        # for _ in range(int(math.log2(self.scale))):
-            # self.dual_model.append(DownBlock(args,2).cuda())
-        # self.dual_model
+        self.optimizer = None
+        self.lr_scheduler = None
         self.loss = my_loss
         self.current_epoch = 0
         if not args.test_only:                                #损失函数
@@ -44,8 +45,7 @@ class Trainer():
                             state[k] = v.cuda()
             # self.optimizer = self.optimizer.cuda()
         self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,args.epochs,args.eta_min)
-        # if self.args.load != '':
-        #     self.optimizer.load(ckp.dir, epoch=len(ckp.log))          #获取log文档
+        # self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer,milestones=self.args.milestones,gamma=self.args.gamma)
         self.dual_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.dual_optimizer,args.epochs,args.eta_min)
         self.best_pred = 1e6
 
@@ -54,7 +54,6 @@ class Trainer():
         self.writer = self.summary.create_summart()
         self.train_iters_epoch = len(self.loader_train)
         self.val_iters_epoch = len(self.loader_test)
-        self.total_iters = 500 * self.train_iters_epoch
         self.train_evaluator = Evaluator(self.args.batch_size,self.args.rgb_range)
         self.val_evaluator = Evaluator(self.args.test_batch_size,self.args.rgb_range)
 
@@ -66,10 +65,9 @@ class Trainer():
         train_primary_loss = 0.0
         train_dual_loss = 0.0
         self.train_evaluator.reset()
-        self.model.train()                                         #设置train属性为true
+        self.model.train()
         train_prefetcher = prefetcher.DataPrefetcher(self.loader_train)
-        hr,lr,_ = train_prefetcher.next()
-        # self.loader_train.dataset.set_scale(0)                     #设置训练尺度
+        hr,lr,flow = train_prefetcher.next()
         i = 1
         while hr is not None:
             # timer_data.hold()
@@ -79,9 +77,9 @@ class Trainer():
             # with torch.autograd.set_detect_anomaly(True):
 
             sr = self.model(lr)
-            loss_primary = self.loss.L1Loss(sr[-1], hr)+ self.loss.L1Loss(sr[0],lr)
+            loss_primary = self.loss.criterion(sr, hr, flow)
 
-            sr2lr = self.dual_model(sr[1])
+            sr2lr = self.dual_model(sr)
             loss_dual = self.loss.L1Loss(sr2lr, lr)
             
 
@@ -90,11 +88,6 @@ class Trainer():
             self.optimizer.step()
             self.dual_optimizer.step()
             # train_loss = loss
-            # if self.args.gclip > 0:
-            #     utils.clip_grad_value_(
-            #         self.model.parameters(),
-            #         self.args.gclip
-            #     )
             # self.optimizer.step()
 
             # timer_model.hold()
@@ -112,7 +105,7 @@ class Trainer():
             # else:
                 # self.optimizer.param_groups[0]["lr"] = self.args.lr * 0.1
             if global_step % 50 == 0:
-                self.summary.visualize_image(self.writer, hr, lr,  sr[-1], global_step, mode="train")
+                self.summary.visualize_image(self.writer, hr, lr,  sr, global_step, mode="train")
                 self.writer.add_scalar("train/train_loss", train_loss/i, i + self.train_iters_epoch * epoch)
                 self.writer.add_scalar("train/train_primary_loss", train_primary_loss/i, i + self.train_iters_epoch * epoch)
                 self.writer.add_scalar("train/train_dual_loss", train_dual_loss/i, i + self.train_iters_epoch * epoch)
@@ -120,16 +113,44 @@ class Trainer():
                 print(msg)
                 logging.info(msg=msg)
             i += 1
-            sr = sr[-1].data.cpu().numpy()
+            sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
-            self.train_evaluator.add_batch(sr=sr, hr=hr)
+            flow = flow.data.cpu().numpy()            
+            self.train_evaluator.add_batch(sr=sr, hr=hr, flow=flow)
+
             # total_loss = l1_loss + slope_loss
             # del total_loss,sr,l1_loss,slope_loss,hr,lr
             # torch.cuda.empty_cache()
-            hr,lr,_ = train_prefetcher.next()
-
+            hr,lr,flow = train_prefetcher.next()
+        
+        # train_extend_prefetcher = prefetcher.DataPrefetcher(self.loader_train_extend)
+        # _,lr,_ = train_extend_prefetcher.next()
+        # while lr is not None:
+        #     # timer_data.hold()
+        #     # timer_model.tic()
+        #     self.optimizer.zero_grad()
+        #     self.dual_optimizer.zero_grad()
+        #     sr = self.model(lr)
+        #     sr2lr = self.dual_model(sr)
+        #     loss_dual = self.loss.L1Loss(sr2lr, lr)
             
-        mse, mae, rmse, e_max, slope_mae,psnr  = self.train_evaluator.score(self.num_trainImage)
+
+        #     total_loss = loss_dual
+        #     total_loss.backward()
+        #     self.optimizer.step()
+        #     self.dual_optimizer.step()
+
+        #     # add different loss every step
+        #     train_loss += total_loss.item()
+        #     #s
+        #     train_dual_loss += loss_dual.item()
+
+
+        #     global_step = i + self.train_iters_epoch * epoch
+        #     i += 1
+        #     _,lr,_ = train_prefetcher.next()
+            
+        mse, mae, rmse, e_max,flow_mae, psnr  = self.train_evaluator.score(self.num_trainImage)
         self.writer.add_scalar("train/learning_rate", self.optimizer.param_groups[0]["lr"], epoch)
         self.writer.add_scalar("train/loss_epoch", train_loss/(i+1), epoch)
         self.writer.add_scalar("train/MSE", mse, epoch)
@@ -137,24 +158,23 @@ class Trainer():
         self.writer.add_scalar("train/MAE", mae, epoch)
         self.writer.add_scalar("train/RMSE", rmse, epoch)
         self.writer.add_scalar("train/E_MAX", e_max, epoch)
-        self.writer.add_scalar("train/Slope_MAE", slope_mae, epoch)
-
+        # self.writer.add_scalar("train/Slope_MAE", slope_mae, epoch)
+        self.writer.add_scalar("train/Flow_MAE", flow_mae, epoch)
         # 计算参数量
         params_num = sum(p.numel() for p in self.model.parameters())
 
 
         print("Train:")
         print('[Epoch: %d, numImages: %5d]' % (epoch, self.num_trainImage))
-        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, SLOPE_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, slope_mae, psnr))
+        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
         print('Loss: %.3f' % (train_loss/i))
         print("\nParams: %.2fM" %(params_num / 1e6))
 
         logging.info("Train:")
         logging.info('[Epoch: %d, numImages: %5d]' % (epoch, self.num_trainImage))
-        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, SLOPE_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, slope_mae, psnr))
+        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))        
         logging.info('Loss: %.3f' %(train_loss / i))
         logging.info("\nParams: %.2fM" %(params_num / 1e6))
-
         # self.lr_scheduler.step()
         self.lr_scheduler.step()
         self.dual_scheduler.step()
@@ -175,13 +195,15 @@ class Trainer():
         # timer_test = utility.timer()
         # if self.args.save_results: self.ckp.begin_background()
         val_prefetcher = prefetcher.DataPrefetcher(self.loader_test)
-        hr,lr,_ = val_prefetcher.next()
+        hr,lr,flow = val_prefetcher.next()
+        # flops,params = profile(self.model, (lr,))
+        # flops,params = clever_format([flops, params], "%.3f")
         i = 1
         while hr is not None:
             with torch.no_grad():
                 sr = self.model(lr)
                 # save_list = [sr]
-                loss_primary = self.loss.L1Loss(sr[-1], hr)+ self.loss.L1Loss(sr[0],lr)
+                loss_primary = self.loss.criterion(sr, hr, flow)
                 # total_loss = l1_loss + slope_loss
             # val_loss += total_loss.item()
             val_loss += loss_primary.item()
@@ -189,22 +211,25 @@ class Trainer():
             # val_loss = self.args.loss_weight[0] * val_L1_loss + self.args.loss_weight[1]* val_slope_loss
             global_step = i + self.val_iters_epoch * epoch
             if global_step % 50 == 0:
-                self.summary.visualize_image(self.writer, hr, lr, sr[-1], global_step, mode="val")
-            sr = sr[-1].data.cpu().numpy()
+                self.summary.visualize_image(self.writer, hr, lr, sr, global_step, mode="val")
+            sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
-            # lr = lr.data.cpu().numpy()
-            self.val_evaluator.add_batch(sr=sr, hr=hr)
+            flow = flow.data.cpu().numpy()
+            self.val_evaluator.add_batch(sr=sr, hr=hr, flow = flow)
                 
             i += 1
-            hr,lr,_ = val_prefetcher.next()
+            hr,lr,flow = val_prefetcher.next()
 
-        mse, mae, rmse, e_max, slope_mae,psnr = self.val_evaluator.score(self.num_valImage)
+        mse, mae, rmse, e_max, flow_mae, psnr = self.val_evaluator.score(self.num_valImage)    
         print("Validation:")
         print('[Epoch: %d, numImages: %5d]' % (epoch, self.num_valImage))
-        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, SLOPE_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, slope_mae, psnr))
+        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
         logging.info("Validation:")
         logging.info('[Epoch: %d, numImages: %5d]' % (epoch, self.num_valImage))
-        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, SLOPE_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, slope_mae, psnr))
+        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
+        # print('\nFLOPs: ',flops, 'Params: ', params)
+        # logging.info("FLOPs:{}, Params: {}".format(flops,params))
+        
         if not self.args.test_only:
             self.writer.add_scalar("val/loss_epoch", val_loss/(i+1), epoch)
             self.writer.add_scalar("val/MSE", mse, epoch)
@@ -212,7 +237,9 @@ class Trainer():
             self.writer.add_scalar("val/MAE", mae, epoch)
             self.writer.add_scalar("val/RMSE", rmse, epoch)
             self.writer.add_scalar("val/E_MAX", e_max, epoch)
-            self.writer.add_scalar("val/Slope_MAE", slope_mae, epoch)
+            # self.writer.add_scalar("val/Slope_MAE", slope_mae, epoch)
+            self.writer.add_scalar("val/Flow_MAE", flow_mae, epoch)
+            
             # 计算参数量
             params_num = sum(p.numel() for p in self.model.parameters())
             print('Loss: %.3f' % (val_loss/i))
