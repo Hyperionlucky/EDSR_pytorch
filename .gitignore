@@ -14,4 +14,4 @@ experiments/*
 logs/*
 experiments_USA/*
 Dataset_USA/*
-src/data/utils
+src/data/utils/*
