@@ -1,7 +1,6 @@
 import torch
 from model import common
 
-
 import torch.nn as nn
 
 def make_model(args):
@@ -23,7 +22,7 @@ class RFAN(nn.Module):
 
         # define body module
         m_body = [                                                                #残差块
-            common.RFA(conv, n_features)
+            common.RFA(conv, n_features, scale=scale)
          for _ in range(self.n_rfanblocks)]             #卷积层
         # m_body.append()    
         # define tail module

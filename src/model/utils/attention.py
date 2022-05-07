@@ -12,7 +12,7 @@ from model.utils.tools import extract_image_patches,\
 
 #in-scale non-local attention
 class NonLocalAttention(nn.Module):
-    def __init__(self, channel=128, reduction=2, ksize=3, scale=3, stride=1, softmax_scale=10, average=True, conv=common.default_conv):
+    def __init__(self, conv, channel=128, reduction=2,  ksize=3, scale=3, stride=1, softmax_scale=10, average=True):
         super(NonLocalAttention, self).__init__()
         self.conv_match1 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act=nn.PReLU())
         self.conv_match2 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act = nn.PReLU())
@@ -34,7 +34,7 @@ class NonLocalAttention(nn.Module):
 
 #cross-scale non-local attention
 class CrossScaleAttention(nn.Module):
-    def __init__(self, channel=128, reduction=2, ksize=3, scale=3, stride=1, softmax_scale=10, average=True, conv=common.default_conv):
+    def __init__(self, conv, channel=128, reduction=2, ksize=3, scale=3, stride=1, softmax_scale=10, average=True):
         super(CrossScaleAttention, self).__init__()
         self.ksize = ksize
         self.stride = stride

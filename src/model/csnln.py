@@ -7,15 +7,15 @@ def make_model(args):
 
 #projection between attention branches
 class MultisourceProjection(nn.Module):
-    def __init__(self, in_channel,kernel_size = 3,scale=2, conv=common.default_conv):
+    def __init__(self, conv, in_channel,kernel_size = 3,scale=2):
         super(MultisourceProjection, self).__init__()
         deconv_ksize, stride, padding, up_factor = {
             2: (6,2,2,2),
             3: (9,3,3,3),
             4: (6,2,2,2)
         }[scale]
-        # self.up_attention = CrossScaleAttention(scale = up_factor)
-        self.down_attention = NonLocalAttention()
+        self.up_attention = CrossScaleAttention(conv=common.default_conv,scale = up_factor,channel=in_channel)
+        self.down_attention = NonLocalAttention(conv=common.default_conv,channel=in_channel)
         self.upsample = nn.Sequential(*[nn.ConvTranspose2d(in_channel,in_channel,deconv_ksize,stride=stride,padding=padding),nn.PReLU()])
         self.encoder = common.ResBlock(conv, in_channel, kernel_size, act=nn.PReLU(), res_scale=1)
     
@@ -30,7 +30,7 @@ class MultisourceProjection(nn.Module):
 
 #projection with local branch
 class RecurrentProjection(nn.Module):
-    def __init__(self, in_channel,kernel_size = 3, scale = 2, conv=common.default_conv):
+    def __init__(self, conv, in_channel,kernel_size = 3, scale = 2):
         super(RecurrentProjection, self).__init__()
         self.scale = scale
         stride_conv_ksize, stride, padding = {
@@ -39,7 +39,7 @@ class RecurrentProjection(nn.Module):
             4: (6,2,2)
         }[scale]
 
-        self.multi_source_projection = MultisourceProjection(in_channel,kernel_size=kernel_size,scale = scale, conv=conv)
+        self.multi_source_projection = MultisourceProjection(conv=conv,in_channel=in_channel,kernel_size=kernel_size,scale = scale)
         self.down_sample_1 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,stride_conv_ksize,stride=stride,padding=padding),nn.PReLU()])
         if scale != 4:
             self.down_sample_2 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,stride_conv_ksize,stride=stride,padding=padding),nn.PReLU()])
@@ -60,13 +60,15 @@ class RecurrentProjection(nn.Module):
         if self.scale == 4:
             x_up_2 = self.multi_source_projection_2(h_estimate)
             x_down_2 = self.down_sample_3(x_up_2)
-            error_up_2 = self.error_encode_2(x-x_down_2)
-            h_estimate = x_up_2 + error_up_2
-            x_final = self.post_conv(self.down_sample_4(h_estimate))
-        else:
-            x_final = self.post_conv(self.down_sample_2(h_estimate))
+            h_estimate = x_up_2 + self.error_encode_2(x-x_down_2)
+            # x_final = self.post_conv(self.down_sample_4(h_estimate))
+            h_estimate = self.post_conv(self.down_sample_4(h_estimate))
 
-        return x_final, h_estimate
+        else:
+            # x_final = self.post_conv(self.down_sample_2(h_estimate))
+            h_estimate = self.post_conv(self.down_sample_2(h_estimate))
+
+        return h_estimate
         
 
         

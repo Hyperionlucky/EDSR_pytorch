@@ -30,7 +30,7 @@ parser.add_argument('--rgb_range', type=int, default=65535,
 parser.add_argument('--n_channels', type=int, default=1,
                     help='number of color channels to use')
 parser.add_argument('--dataset_dir', type=str,
-                    default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/Dataset_USA/")
+                    default="./Dataset_USA/")
 
 
 # Model specifications
