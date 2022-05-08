@@ -1,6 +1,6 @@
 import torch
 from model import common
-
+from model.utils.attention import NonLocalAttention
 import torch.nn as nn
 
 def make_model(args):
@@ -19,10 +19,11 @@ class RFAN(nn.Module):
         act = nn.ReLU(True)
         # define head module
         m_head = [conv(args.n_channels, n_features, 3)]        #第一个卷积层
-
         # define body module
+        self.attention_list = nn.Sequential(NonLocalAttention(conv=conv, channel=n_features * 4,reduction=4),conv(n_features * 4,n_features,1))
         m_body = [                                                                #残差块
-            common.RFA(conv, n_features, scale=scale)
+            # common.RFA(conv, n_features, scale=scale)
+            common.RFA_NoTail(conv, n_features, scale=scale)
          for _ in range(self.n_rfanblocks)]             #卷积层
         # m_body.append()    
         # define tail module
@@ -33,21 +34,25 @@ class RFAN(nn.Module):
         ]
 
         self.head = nn.Sequential(*m_head)
-        self.body = nn.Sequential(*m_body)
+        self.body = nn.ModuleList(m_body)
         self.tail = nn.Sequential(*m_tail)
         common.weight_init(self)
     def forward(self, lr):
         # x = self.sub_mean(x)
         # x = lr
         x = self.head(lr)
-        
-        # for i in range(self.)
-        res = self.body(x)
-        res += x
+        results = x
+        for i in self.n_rfanblocks:
+            # res = x
+            res = self.body[i](x)
+            res = self.attention_list(res)
+            x += res
 
-        x = self.tail(res)
+        results += x
+
+        results = self.tail(results)
         # x = self.add_mean(x)
 
-        return x
+        return results
 
 

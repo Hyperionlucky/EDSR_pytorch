@@ -14,9 +14,9 @@ from model.utils.tools import extract_image_patches,\
 class NonLocalAttention(nn.Module):
     def __init__(self, conv, channel=128, reduction=2,  ksize=3, scale=3, stride=1, softmax_scale=10, average=True):
         super(NonLocalAttention, self).__init__()
-        self.conv_match1 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act=nn.PReLU())
-        self.conv_match2 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act = nn.PReLU())
-        self.conv_assembly = common.BasicBlock(conv, channel, channel, 1,bn=False, act=nn.PReLU())
+        self.conv_match1 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act=nn.ReLU(True))
+        self.conv_match2 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act = nn.ReLU(True))
+        self.conv_assembly = common.BasicBlock(conv, channel, channel//reduction, 1,bn=False, act=nn.ReLU(True))
         
     def forward(self, input):
         x_embed_1 = self.conv_match1(input)

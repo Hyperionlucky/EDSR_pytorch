@@ -369,9 +369,9 @@ class ERes(nn.Module):
             nn.ReLU(True),
             conv(n_features, n_features, 3),
             # enhanced spatial attention
-            # ESA(conv, n_features)
-            RecurrentProjection(conv=default_conv,in_channel=n_features,scale=scale)
-            # CrossScaleAttention(conv=default_conv, channel=n_features)
+            ESA(conv, n_features)
+            # RecurrentProjection(conv=default_conv,in_channel=n_features,scale=scale)
+            # NonLocalAttention(conv=default_conv, channel=n_features)
         )
 
     def forward(self, x):
@@ -386,7 +386,10 @@ class RFA(nn.Module):
         rfa = [ERes(conv=conv, n_features=n_features, scale=scale)
                for _ in range(self.n_resblocks)]
         self.RFA = nn.ModuleList(rfa)
-        self.tail = conv(n_features * 4, n_features, 1)
+        self.tail = nn.Sequential(
+            # NonLocalAttention(conv=default_conv, channel=n_features * 4,reduction=4),
+            conv(n_features * 4, n_features, 1)
+            )
 
     def forward(self, x):
         feature = x
@@ -397,3 +400,20 @@ class RFA(nn.Module):
         res = self.tail(torch.cat(res_feature, dim=1))
         res += feature
         return res
+
+class RFA_NoTail(nn.Module):
+    def __init__(self, conv, n_features, scale) -> None:
+        super(RFA, self).__init__()
+        self.n_resblocks = 4
+        rfa = [ERes(conv=conv, n_features=n_features, scale=scale)
+               for _ in range(self.n_resblocks)]
+        self.RFA = nn.ModuleList(rfa)
+        
+
+    def forward(self, x):
+        # feature = x
+        res_feature = []
+        for index in range(self.n_resblocks):
+            tmp, x = self.RFA[index](x)
+            res_feature.append(tmp)
+        return torch.cat(res_feature, dim=1)

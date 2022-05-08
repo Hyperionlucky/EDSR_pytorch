@@ -19,7 +19,7 @@ parser.add_argument('--seed', type=int, default=1,
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=int, default=4,
+parser.add_argument('--scale', type=int, default=2,
                     help='super resolution scale')
 parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
