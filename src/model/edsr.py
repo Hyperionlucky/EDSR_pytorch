@@ -3,6 +3,9 @@ from model import common
 
 
 import torch.nn as nn
+
+def make_model(args):
+    return EDSR(args)
 class EDSR(nn.Module):
     def __init__(self, args) -> None:
         super(EDSR, self).__init__()

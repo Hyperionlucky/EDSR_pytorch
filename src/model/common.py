@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from model.utils.attention import NonLocalAttention,CrossScaleAttention
+from model.utils.attention import NonLocalAttention, CrossScaleAttention
 
 
 def default_conv(in_channels, out_channels, kernel_size, bias=True):
@@ -52,7 +52,6 @@ class BasicBlock(nn.Sequential):
     def __init__(
             self, conv, in_channels, out_channels, kernel_size, stride=1, bias=False,
             bn=True, act=nn.ReLU(True)):
-
         m = [conv(in_channels, out_channels, kernel_size, bias=bias)]
         if bn:
             m.append(nn.BatchNorm2d(out_channels))
@@ -239,19 +238,19 @@ class DownBlock(nn.Module):
         if (scale & (scale - 1)) == 0:
             for _ in range(int(math.log(scale, 2))):
                 m.append(nn.Conv2d(in_channels, nFeat, kernel_size=3,
-                      stride=2, padding=1, bias=False)),
+                                   stride=2, padding=1, bias=False)),
                 m.append(nn.LeakyReLU(negative_slope=negval, inplace=True)),
                 m.append(nn.Conv2d(nFeat, out_channels, kernel_size=3,
-                      stride=1, padding=1, bias=False))
+                                   stride=1, padding=1, bias=False))
                 self.dual_block = nn.Sequential(*m)
         elif scale == 3:
             self.dual_block = nn.Sequential(
-            nn.Conv2d(in_channels, nFeat, kernel_size=3,
-                      stride=3, padding=1, bias=False),
-            nn.LeakyReLU(negative_slope=negval, inplace=True),
-            nn.Conv2d(nFeat, out_channels, kernel_size=3,
-                      stride=1, padding=1, bias=False)
-        )
+                nn.Conv2d(in_channels, nFeat, kernel_size=3,
+                          stride=3, padding=1, bias=False),
+                nn.LeakyReLU(negative_slope=negval, inplace=True),
+                nn.Conv2d(nFeat, out_channels, kernel_size=3,
+                          stride=1, padding=1, bias=False)
+            )
 
         # for _ in range(1, int(math.log2(scale))):
         #     dual_block.append(
@@ -269,51 +268,65 @@ class DownBlock(nn.Module):
         x = self.dual_block(x)
         return x
 
+
 class MultisourceProjection(nn.Module):
-    def __init__(self, conv, in_channel,kernel_size = 3,scale=2):
+    def __init__(self, conv, in_channel, kernel_size=3, scale=2):
         super(MultisourceProjection, self).__init__()
         deconv_ksize, stride, padding, up_factor = {
-            2: (6,2,2,2),
-            3: (9,3,3,3),
-            4: (6,2,2,2)
+            2: (6, 2, 2, 2),
+            3: (9, 3, 3, 3),
+            4: (6, 2, 2, 2)
         }[scale]
-        self.up_attention = CrossScaleAttention(conv=conv,scale = up_factor,channel=in_channel)
-        self.down_attention = NonLocalAttention(conv=conv,channel=in_channel)
-        self.upsample = nn.Sequential(*[nn.ConvTranspose2d(in_channel,in_channel,deconv_ksize,stride=stride,padding=padding),nn.PReLU()])
-        self.encoder = ResBlock(conv, in_channel, kernel_size, act=nn.PReLU(), res_scale=1)
-    
-    def forward(self,x):
+        self.up_attention = CrossScaleAttention(
+            conv=conv, scale=up_factor, channel=in_channel)
+        self.down_attention = NonLocalAttention(conv=conv, channel=in_channel)
+        self.upsample = nn.Sequential(
+            *[nn.ConvTranspose2d(in_channel, in_channel, deconv_ksize, stride=stride, padding=padding), nn.PReLU()])
+        self.encoder = ResBlock(
+            conv, in_channel, kernel_size, act=nn.PReLU(), res_scale=1)
+
+    def forward(self, x):
         down_map = self.upsample(self.down_attention(x))
         # up_map = self.up_attention(x)
 
         err = self.encoder(down_map)
         final_map = down_map + err
-        
+
         return final_map
 
 #projection with local branch
+
+
 class RecurrentProjection(nn.Module):
-    def __init__(self, conv, in_channel,kernel_size = 3, scale = 2):
+    def __init__(self, conv, in_channel, kernel_size=3, scale=2):
         super(RecurrentProjection, self).__init__()
         self.scale = scale
         stride_conv_ksize, stride, padding = {
-            2: (6,2,2),
-            3: (9,3,3),
-            4: (6,2,2)
+            2: (6, 2, 2),
+            3: (9, 3, 3),
+            4: (6, 2, 2)
         }[scale]
 
-        self.multi_source_projection = MultisourceProjection(conv=conv,in_channel=in_channel,kernel_size=kernel_size,scale = scale)
-        self.down_sample_1 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,stride_conv_ksize,stride=stride,padding=padding),nn.PReLU()])
+        self.multi_source_projection = MultisourceProjection(
+            conv=conv, in_channel=in_channel, kernel_size=kernel_size, scale=scale)
+        self.down_sample_1 = nn.Sequential(
+            *[nn.Conv2d(in_channel, in_channel, stride_conv_ksize, stride=stride, padding=padding), nn.PReLU()])
         if scale != 4:
-            self.down_sample_2 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,stride_conv_ksize,stride=stride,padding=padding),nn.PReLU()])
-        self.error_encode = nn.Sequential(*[nn.ConvTranspose2d(in_channel,in_channel,stride_conv_ksize,stride=stride,padding=padding),nn.PReLU()])
-        self.post_conv = BasicBlock(conv,in_channel,in_channel,kernel_size,stride=1,bias=True,act=nn.PReLU())
+            self.down_sample_2 = nn.Sequential(
+                *[nn.Conv2d(in_channel, in_channel, stride_conv_ksize, stride=stride, padding=padding), nn.PReLU()])
+        self.error_encode = nn.Sequential(
+            *[nn.ConvTranspose2d(in_channel, in_channel, stride_conv_ksize, stride=stride, padding=padding), nn.PReLU()])
+        self.post_conv = BasicBlock(
+            conv, in_channel, in_channel, kernel_size, stride=1, bias=True, act=nn.PReLU())
         if scale == 4:
-            self.multi_source_projection_2 = MultisourceProjection(conv=conv,in_channel=in_channel,kernel_size=kernel_size,scale = scale)
-            self.down_sample_3 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,8,stride=4,padding=2),nn.PReLU()])
-            self.down_sample_4 = nn.Sequential(*[nn.Conv2d(in_channel,in_channel,8,stride=4,padding=2),nn.PReLU()])
-            self.error_encode_2 = nn.Sequential(*[nn.ConvTranspose2d(in_channel,in_channel,8,stride=4,padding=2),nn.PReLU()])
-
+            self.multi_source_projection_2 = MultisourceProjection(
+                conv=conv, in_channel=in_channel, kernel_size=kernel_size, scale=scale)
+            self.down_sample_3 = nn.Sequential(
+                *[nn.Conv2d(in_channel, in_channel, 8, stride=4, padding=2), nn.PReLU()])
+            self.down_sample_4 = nn.Sequential(
+                *[nn.Conv2d(in_channel, in_channel, 8, stride=4, padding=2), nn.PReLU()])
+            self.error_encode_2 = nn.Sequential(
+                *[nn.ConvTranspose2d(in_channel, in_channel, 8, stride=4, padding=2), nn.PReLU()])
 
     def forward(self, x):
         x_up = self.multi_source_projection(x)
@@ -333,43 +346,50 @@ class RecurrentProjection(nn.Module):
 
         return h_estimate
 
+
 class ESA(nn.Module):
-    def __init__(self,  conv, channel,  reduction=4) -> None:
+    def __init__(self,  conv, channel, act=nn.ReLU(True), reduction=4) -> None:
         super(ESA, self).__init__()
-        self.channel_reduction = nn.Sequential(nn.Conv2d(channel, channel//reduction, 1, padding=0, bias=True),
-                                               nn.ReLU(True))
-        conv_group = []
-        for _ in range(3):
-            conv_group.append(conv(channel//reduction, channel//reduction, 3))
-            conv_group.append(nn.ReLU(True))
-        self.conv_sa = nn.Sequential(
+        self.channel_reduction = nn.Sequential(
+            nn.Conv2d(channel, channel//reduction, 1, padding=0, bias=True),
+            act)
+        conv_group = [BasicBlock(conv=conv, in_channels=channel//reduction,
+                                 out_channels=channel//reduction, kernel_size=3, act=act) for _ in range(3)]
+        self.conv_stride_pool = nn.Sequential(
             # ke = k + (k-1) * (d-1) d:dilation
             nn.Conv2d(channel//reduction, channel//reduction,
                       kernel_size=3, dilation=6, padding=6, bias=True),
-            nn.ReLU(True),
+            act,
             *conv_group,
         )
-        self.conv_du = nn.Sequential(
+        # self.conv_stride_pool = nn.Sequential(
+        #     BasicBlock(conv=conv, in_channels=channel//reduction,
+        #                out_channels=channel//reduction, kernel_size=3, stride=3, act=act),
+        #     nn.MaxPool2d(7),
+        #     *conv_group,
+        #     nn.ConvTranspose2d(in_channels=channel//reduction,
+        #                        out_channels=channel//reduction, stride=8, kernel_size=8)
+        # )
+        self.conv_rd = nn.Sequential(
             conv(2 * channel//reduction, channel, 1, bias=True),
             nn.Sigmoid()
         )
 
     def forward(self, x):
         feature = self.channel_reduction(x)
-        feature_conv = self.conv_sa(feature)
-        feature_sa = self.conv_du(torch.cat([feature,feature_conv], dim=1))
+        feature_conv = self.conv_stride_pool(feature)
+        feature_sa = self.conv_rd(torch.cat([feature, feature_conv], dim=1))
         return feature_sa*x
 
 
 class ERes(nn.Module):
-    def __init__(self, conv, n_features, scale) -> None:
+    def __init__(self, conv, n_features, scale, act=nn.ReLU(True)) -> None:
         super(ERes, self).__init__()
         self.body = nn.Sequential(
-            conv(n_features, n_features, 3),
-            nn.ReLU(True),
+            BasicBlock(conv, n_features, n_features, 3, act=act),
             conv(n_features, n_features, 3),
             # enhanced spatial attention
-            ESA(conv, n_features)
+            ESA(conv, n_features, act)
             # RecurrentProjection(conv=default_conv,in_channel=n_features,scale=scale)
             # NonLocalAttention(conv=default_conv, channel=n_features)
         )
@@ -389,7 +409,7 @@ class RFA(nn.Module):
         self.tail = nn.Sequential(
             # NonLocalAttention(conv=default_conv, channel=n_features * 4,reduction=4),
             conv(n_features * 4, n_features, 1)
-            )
+        )
 
     def forward(self, x):
         feature = x
@@ -401,14 +421,14 @@ class RFA(nn.Module):
         res += feature
         return res
 
+
 class RFA_NoTail(nn.Module):
-    def __init__(self, conv, n_features, scale) -> None:
-        super(RFA, self).__init__()
+    def __init__(self, conv, n_features, scale, act) -> None:
+        super(RFA_NoTail, self).__init__()
         self.n_resblocks = 4
-        rfa = [ERes(conv=conv, n_features=n_features, scale=scale)
+        rfa = [ERes(conv=conv, n_features=n_features, scale=scale, act=act)
                for _ in range(self.n_resblocks)]
         self.RFA = nn.ModuleList(rfa)
-        
 
     def forward(self, x):
         # feature = x

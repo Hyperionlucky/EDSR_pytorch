@@ -15,7 +15,7 @@ parser.add_argument('--n_GPUs', type=int, default=1,
                     help='number of GPUs')
 parser.add_argument('--seed', type=int, default=1,
                     help='random seed')
-
+parser.add_argument('--gpu-ids', type=list, default=[0], help="use which gpu in environ to train")
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
@@ -58,7 +58,7 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--test_only',  default=False, help='is test or not')
 # parser.add_argument('--resume', type=str,
-                    # default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X3/EDSR/experiment_1/checkpoint.pth", help='checkpoint name')
+                    # default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X2/RFAN/experiment_other/checkpoint.pth", help='checkpoint name')
 parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
 # DRN model config
 parser.add_argument('--n_blocks', type=int, default=40, help="number of DRN blocks")

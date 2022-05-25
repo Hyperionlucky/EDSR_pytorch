@@ -11,7 +11,7 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class Demdataset(Dataset):
-    def __init__(self, datapath, mode="train", crop_size = 96, scale=2, reverse=False):
+    def __init__(self, datapath, mode="train", crop_size=96, scale=2, reverse=False):
         super(Demdataset, self).__init__()
         self.mode = mode
         with open(datapath, "r", errors='ignore') as lines:
@@ -33,7 +33,7 @@ class Demdataset(Dataset):
             self.transform_scale = transform.Compose(transform.RandomScaleCrop(crop_size=crop_size, scale=scale),
                                                      transform.RandomHorizontalFlip(),
                                                      transform.RandomVerticalFlip(),
-                                                    #  transform.RandomRotation(),
+                                                     #  transform.RandomRotation(),
                                                      transform.Totensor())
 
         if mode == "val":
@@ -58,7 +58,6 @@ class Demdataset(Dataset):
                 flow = Image.open(flow_path)
                 flow_array = np.array(flow)
 
-
         else:
             hr = cv2.imread(hr_path, cv2.IMREAD_UNCHANGED)
             lr = cv2.imread(lr_path, cv2.IMREAD_UNCHANGED)
@@ -66,8 +65,6 @@ class Demdataset(Dataset):
             flow = Image.open(flow_path)
             flow_array = np.array(flow)
             # flow = TIFF.open(flow_path, mode='r').read_image()
-
-
         if self.mode == "train":
             hr, lr, flow = self.transform_scale(hr, lr, flow_array)
         if self.mode == "val":

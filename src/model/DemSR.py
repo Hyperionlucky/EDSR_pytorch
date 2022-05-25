@@ -3,8 +3,12 @@ from model import common
 
 
 import torch.nn as nn
+
+def make_model(args):
+    return DemSR(args)
+
 class DemSR(nn.Module):
-    def __init__(self, args) -> None:
+    def __init__(self, args):
         super(DemSR, self).__init__()
         conv = common.default_conv
         

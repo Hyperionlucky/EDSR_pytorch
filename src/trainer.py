@@ -9,6 +9,8 @@ import torch
 from thop import profile
 from thop import clever_format
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 class Trainer():
     def __init__(self, args, loader, my_model, my_loss):
         self.args = args
@@ -52,7 +54,9 @@ class Trainer():
         self.val_evaluator = Evaluator(self.args.test_batch_size,self.args.rgb_range)
 
         if torch.cuda.is_available():
+            self.model = torch.nn.DataParallel(self.model, device_ids=self.args.gpu_ids)
             self.model = self.model.cuda()
+            torch.backends.cudnn.benchmark = True 
 
     def train(self,epoch):
 
@@ -65,8 +69,6 @@ class Trainer():
         i = 1
         while hr is not None:
             self.optimizer.zero_grad()
-            # with torch.autograd.set_detect_anomaly(True):
-
             sr = self.model(lr)
             total_loss = self.loss.criterion(sr, hr, flow)
             

@@ -15,3 +15,7 @@ logs/*
 experiments_USA/*
 Dataset_USA/*
 src/data/utils/*
+predict
+Dataset.zip
+USA.tar
+Dataset_USA.tar.xz

@@ -14,9 +14,9 @@ from model.utils.tools import extract_image_patches,\
 class NonLocalAttention(nn.Module):
     def __init__(self, conv, channel=128, reduction=2,  ksize=3, scale=3, stride=1, softmax_scale=10, average=True):
         super(NonLocalAttention, self).__init__()
-        self.conv_match1 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act=nn.ReLU(True))
-        self.conv_match2 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act = nn.ReLU(True))
-        self.conv_assembly = common.BasicBlock(conv, channel, channel//reduction, 1,bn=False, act=nn.ReLU(True))
+        self.conv_match1 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act=nn.PReLU())
+        self.conv_match2 = common.BasicBlock(conv, channel, channel//reduction, 1, bn=False, act = nn.PReLU())
+        self.conv_assembly = common.BasicBlock(conv, channel, channel, 1,bn=False, act=nn.PReLU())
         
     def forward(self, input):
         x_embed_1 = self.conv_match1(input)
@@ -24,13 +24,14 @@ class NonLocalAttention(nn.Module):
         x_assembly = self.conv_assembly(input)
 
         N,C,H,W = x_embed_1.shape
-        x_embed_1 = x_embed_1.permute(0,2,3,1).view((N,H*W,C))
+        x_embed_1 = x_embed_1.permute(0,2,3,1).contiguous().view((N,H*W,C))
         x_embed_2 = x_embed_2.view(N,C,H*W)
         score = torch.matmul(x_embed_1, x_embed_2)
         score = F.softmax(score, dim=2)
         x_assembly = x_assembly.view(N,-1,H*W).permute(0,2,1)
         x_final = torch.matmul(score, x_assembly)
-        return x_final.permute(0,2,1).view(N,-1,H,W)
+        x_final = x_final.permute(0,2,1).contiguous().view(N,-1,H,W)
+        return x_final
 
 #cross-scale non-local attention
 class CrossScaleAttention(nn.Module):
