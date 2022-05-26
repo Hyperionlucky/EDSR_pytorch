@@ -8,7 +8,7 @@ RGB_RANGE = 4294967296
 
 
 class Evaluator(object):
-    def __init__(self, batch_size, rgb_range) -> None:
+    def __init__(self, batch_size=16, rgb_range=RGB_RANGE) -> None:
         self.batch_size = batch_size
         self.rgb_range = rgb_range
         self.metric_matrix = [np.zeros((batch_size, 1)) for _ in range(6)]

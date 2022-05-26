@@ -24,3 +24,10 @@ class Loss(object):
         loss = -torch.mean(self.weight[0] * target * torch.log(logit + 1e-7)
                            + self.weight[1] * (1 - target) * torch.log(1 - logit + 1e-7))
         return loss
+    def CrossEntropyLoss(self, logit, target, weight = torch.tensor([1, 1, 1]).float().cuda()):
+        target = torch.squeeze(target, dim=1)
+        criterion = nn.CrossEntropyLoss(weight=weight, size_average=True)
+
+        loss = criterion(logit, target.long())
+
+        return loss

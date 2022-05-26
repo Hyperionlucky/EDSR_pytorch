@@ -34,9 +34,10 @@ parser.add_argument('--dataset_dir', type=str,
 
 
 # Model specifications
-parser.add_argument('--model', type=str, default='RFAN',
+parser.add_argument('--model', type=str, default='HRNET',
                     help='model name')
-
+parser.add_argument('--pretrained-path', type=str,
+                    default="./pretrained/hrnet_w32-36af842e.pth")
 parser.add_argument('--act', type=str, default='relu',
                     help='activation function')
 parser.add_argument('--pre_train', type=str, default='',
@@ -105,7 +106,7 @@ parser.add_argument('--epsilon', type=float, default=1e-8,
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[1,1],
+parser.add_argument('--loss_weight', type=list, default=[2,1],
                     help='loss function weight')
 parser.add_argument('--isDual', type=bool, default=False)
 # Log specifications

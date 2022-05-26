@@ -66,9 +66,15 @@ class RFA_Block(nn.Module):
         #                                 for _ in range(3)]
         # for i in range(10,num_blocks+10,10):
         #     m_body.insert(i, attention_list[i//10 - 1])
-        self.body = nn.Sequential(*m_body)
+        self.body = nn.ModuleList(m_body)
+        self.tail = nn.Sequential(conv(n_features*3, n_features, 1))  
     def forward(self, x):
-        return self.body(x)
+        local_features = []
+        for i in range(self.num_blocks):
+            x = self.body[i](x)
+            if (i+1) % 10 == 0:
+                local_features.append(x)           
+        return self.tail(torch.cat(local_features, dim=1))
 class RFA_Attention(nn.Module):
     def __init__(self, attention, n_features, scale, num_blocks, act) -> None:
         super(RFA_Attention, self).__init__()
