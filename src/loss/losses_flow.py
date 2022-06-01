@@ -6,16 +6,20 @@ class Loss(object):
     def __init__(self, weight=None):
         super(Loss, self).__init__()
         self.weight = weight
-
-    def criterion(self, sr, hr, flow):
+        
+    def criterion(self, sr, hr):
         # loss1 = self.L1Loss(sr*flow, hr*flow)
         # flow_reverse = torch.abs(flow - 1)
         # loss2 = self.L1Loss(sr*flow_reverse, hr*flow_reverse)
         # return loss1 * self.weight[0] + loss2*self.weight[1]
-        return self.L1Loss(sr,hr) + self.BCELoss(sr,flow)
-    def L1Loss(self, sr, hr):
+       
+        sr = sr.float()
+        hr = hr.float()
         criterion = nn.L1Loss()
         return criterion(sr, hr)
+    def L1Loss(self, sr, hr):
+        
+        return 
 
     def BCELoss(self, sr, flow):
         logit = torch.sigmoid(sr)
@@ -26,7 +30,7 @@ class Loss(object):
         return loss
     def CrossEntropyLoss(self, logit, target, weight = torch.tensor([1, 1, 1]).float().cuda()):
         target = torch.squeeze(target, dim=1)
-        criterion = nn.CrossEntropyLoss(weight=weight, size_average=True)
+        criterion = nn.CrossEntropyLoss(weight=weight,reduction='mean')
 
         loss = criterion(logit, target.long())
 

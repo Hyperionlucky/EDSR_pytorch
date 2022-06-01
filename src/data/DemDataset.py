@@ -10,9 +10,9 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 # from libtiff import TIFF
 
 
-class Demdataset(Dataset):
+class DemDataset(Dataset):
     def __init__(self, datapath, mode="train", crop_size=96, scale=2, reverse=False):
-        super(Demdataset, self).__init__()
+        super(DemDataset, self).__init__()
         self.mode = mode
         with open(datapath, "r", errors='ignore') as lines:
             self.samples = []
@@ -65,6 +65,7 @@ class Demdataset(Dataset):
             flow = Image.open(flow_path)
             flow_array = np.array(flow)
             # flow = TIFF.open(flow_path, mode='r').read_image()
+            
         if self.mode == "train":
             hr, lr, flow = self.transform_scale(hr, lr, flow_array)
         if self.mode == "val":

@@ -24,7 +24,7 @@ class HRNet(nn.Module):
     def __init__(self, args):
         super(HRNet, self).__init__()
         self.semantic_backbone = HRNet32(
-            pretrained_path=args.pretrained_path, norm_layer=None)
+            pretrained_path=None, norm_layer=None)
         self.head = FCNHead(480, 3)
     def forward(self, img):
         img_feature = self.semantic_backbone(img)

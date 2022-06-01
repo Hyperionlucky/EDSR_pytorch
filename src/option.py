@@ -34,10 +34,10 @@ parser.add_argument('--dataset_dir', type=str,
 
 
 # Model specifications
-parser.add_argument('--model', type=str, default='HRNET',
+parser.add_argument('--model', type=str, default='RFAN',
                     help='model name')
 parser.add_argument('--pretrained-path', type=str,
-                    default="./pretrained/hrnet_w32-36af842e.pth")
+                    default="./experiments_USA/X2/HRNET/experiment_5/checkpoint.pth")
 parser.add_argument('--act', type=str, default='relu',
                     help='activation function')
 parser.add_argument('--pre_train', type=str, default='',

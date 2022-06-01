@@ -6,6 +6,7 @@ from utils.metrics import Evaluator
 from data import prefetcher
 from utils.summaries import TensorboardSummary
 import torch
+import model
 from thop import profile
 from thop import clever_format
 
@@ -29,7 +30,7 @@ class Trainer():
         self.optimizer = None
         self.lr_scheduler = None
         if not args.test_only:                                #损失函数
-            self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.args.lr,betas=[args.beta1,args.beta2], eps=args.epsilon)
+            self.optimizer = torch.optim.Adam(filter(lambda p:p.requires_grad, self.model.parameters()), lr=self.args.lr,betas=[args.beta1,args.beta2], eps=args.epsilon)
             self.lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(self.optimizer,args.epochs,args.eta_min)
             # self.lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(self.optimizer,milestones=self.args.milestones,gamma=self.args.gamma)            
         if args.resume is not None:
@@ -69,9 +70,8 @@ class Trainer():
         i = 1
         while hr is not None:
             self.optimizer.zero_grad()
-            sr = self.model(lr)
-            total_loss = self.loss.criterion(sr, hr, flow)
-            
+            sr,terrain_line,hr_line = self.model(lr,hr)
+            total_loss = self.loss.criterion(sr, hr) + self.loss.criterion(terrain_line, hr_line)
 
             # total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
             total_loss.backward()
@@ -141,8 +141,8 @@ class Trainer():
         i = 1
         while hr is not None:
             with torch.no_grad():
-                sr = self.model(lr)
-                val_loss = self.loss.criterion(sr, hr, flow)
+                sr,terrain_line,hr_line = self.model(lr,hr)
+                val_loss = self.loss.criterion(sr, hr) + self.loss.criterion(terrain_line, hr_line)
                 # total_loss = l1_loss + slope_loss
             # val_loss += total_loss.item()
             # val_L1_loss += l1_loss.item()
@@ -187,7 +187,7 @@ class Trainer():
                 is_best = True
                 self.best_pred = new_pred
                 self.saver.save_checkpoint({'epoch': epoch + 1,
-                'state_dict': self.model.state_dict(),
+                'state_dict': self.model.module.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
                 'scheduler': self.lr_scheduler.state_dict(),
                 'best_pred': self.best_pred}, is_best=is_best)

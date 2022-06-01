@@ -67,12 +67,12 @@ class Trainer():
         self.train_evaluator.reset()
         self.model.train()                                         #设置train属性为true
         train_prefetcher = prefetcher.DataPrefetcher(self.loader_train)
-        hr,_,flow = train_prefetcher.next()
+        hr,_,terrain_line = train_prefetcher.next()
         i = 1
         while hr is not None:
             self.optimizer.zero_grad()
             hr_seg = self.model(hr)
-            total_loss = self.loss.CrossEntropyLoss(hr_seg, flow)
+            total_loss = self.loss.CrossEntropyLoss(hr_seg, terrain_line)
             
 
             # total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
@@ -93,9 +93,9 @@ class Trainer():
             hr_seg = hr_seg.data.cpu().numpy()
             hr_seg = np.argmax(hr_seg, axis=1)
             hr_seg = hr_seg[:, np.newaxis, :, :]
-            flow = flow.data.cpu().numpy()
-            self.train_evaluator.add_batch(label=flow, pred=hr_seg)
-            hr,_,flow = train_prefetcher.next()
+            terrain_line = terrain_line.data.cpu().numpy()
+            self.train_evaluator.add_batch(label=terrain_line, pred=hr_seg)
+            hr,_,terrain_line = train_prefetcher.next()
 
             
         mIoU_class, mIoU = self.train_evaluator.Mean_Intersection_over_Union()
@@ -133,20 +133,22 @@ class Trainer():
         self.model.eval()                                            #设置train为false
 
         val_prefetcher = prefetcher.DataPrefetcher(self.loader_test)
-        hr,_,flow = val_prefetcher.next()
+        hr,_,terrain_line = val_prefetcher.next()
         # flops,params = profile(self.model, inputs=(lr,))
         # flops,params = clever_format([flops, params], "%.3f")
         i = 1
         while hr is not None:
             with torch.no_grad():
                 hr_seg = self.model(hr)
-                val_loss = self.loss.CrossEntropyLoss(hr_seg, flow)
-            hr = hr.data.cpu().numpy()
-            flow = flow.data.cpu().numpy()
-            self.val_evaluator.add_batch(label=flow, pred=hr_seg)
+                val_loss = self.loss.CrossEntropyLoss(hr_seg, terrain_line)
+            hr_seg = hr_seg.data.cpu().numpy()
+            hr_seg = np.argmax(hr_seg, axis=1)
+            hr_seg = hr_seg[:, np.newaxis, :, :]
+            terrain_line = terrain_line.data.cpu().numpy()
+            self.val_evaluator.add_batch(label=terrain_line, pred=hr_seg)
                 
             i += 1
-            hr,_,flow = val_prefetcher.next()
+            hr,_,terrain_line = val_prefetcher.next()
 
         mIoU_class, mIoU = self.val_evaluator.Mean_Intersection_over_Union()
         precision, recall, F1_class, F1 = self.val_evaluator.F1_score()

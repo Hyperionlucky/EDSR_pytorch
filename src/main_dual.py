@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader
 # import utility
 # import data
 import model
-from data.Demdataset import Demdataset
+from data.DemDataset import DemDataset
 from loss.losses_flow import Loss
 from option import args
 from trainer_Dual import Trainer
@@ -25,9 +25,9 @@ def main():
 
     traindataset_path = args.dataset_dir + "train_" + str(args.scale) +"x_flow.txt"
     valdataset_path = args.dataset_dir + "val_" + str(args.scale) +"x_flow.txt"
-    traindataset = Demdataset(traindataset_path,
+    traindataset = DemDataset(traindataset_path,
                               mode="train", crop_size=args.patch_size, scale=args.scale, reverse=True)
-    valdataset = Demdataset(valdataset_path, mode="val", crop_size=192, scale = args.scale)
+    valdataset = DemDataset(valdataset_path, mode="val", crop_size=192, scale = args.scale)
     traindataloader = DataLoader(traindataset, batch_size=args.batch_size,
                                  num_workers=args.workers, drop_last=True, shuffle=True, pin_memory=False)
     valdataloader = DataLoader(valdataset, batch_size=args.test_batch_size,
@@ -49,7 +49,7 @@ def main():
         from model.drn import DRN
         _model = DRN(args=args)
     if args.model == "EDSR":
-        from model.Edsr import EDSR
+        from model.edsr import EDSR
         _model = EDSR(args)
     if args.model in ["nearest","bilinear","bicubic"]:
         from model.benchmark import Benchmark
