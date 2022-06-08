@@ -51,15 +51,15 @@ class RFAN(nn.Module):
         self.head = nn.Sequential(*m_head)
         self.body = nn.Sequential(m_body)
         self.tail = nn.Sequential(*m_tail)
-        self.model_cls = HRNet(args=args)
+        # self.model_cls = HRNet(args=args)
         common.weight_init(self)
-        for child in self.model_cls.children():
-            for param in child.parameters():
-                param.requires_grad = False
-        if args.pretrained_path is not None:
-            self.model_cls = load_model(self.model_cls, args.pretrained_path)
+        # for child in self.model_cls.children():
+        #     for param in child.parameters():
+        #         param.requires_grad = False
+        # if args.pretrained_path is not None:
+        #     self.model_cls = load_model(self.model_cls, args.pretrained_path)
 
-    def forward(self, lr, hr):
+    def forward(self, lr):
         # x = self.sub_mean(x)
         # x = lr
         x = self.head(lr)
@@ -70,9 +70,9 @@ class RFAN(nn.Module):
 
         results = self.tail(res)
         # x = self.add_mean(x)
-        terrain_line = self.model_cls(results)
-        hr_line = self.model_cls(hr)
-        return results, torch.argmax(terrain_line,dim=1).unsqueeze(dim=1), torch.argmax(hr_line, dim=1).unsqueeze(dim=1)
+        # terrain_line = self.model_cls(results)
+        # hr_line = self.model_cls(hr)
+        return results
         # return results
 
 

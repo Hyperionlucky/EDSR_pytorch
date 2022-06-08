@@ -70,8 +70,8 @@ class Trainer():
         i = 1
         while hr is not None:
             self.optimizer.zero_grad()
-            sr,terrain_line,hr_line = self.model(lr,hr)
-            total_loss = self.loss.criterion(sr, hr) + self.loss.criterion(terrain_line, hr_line)
+            sr = self.model(lr)
+            total_loss = self.loss.terrain_criterion(sr, hr, flow)
 
             # total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
             total_loss.backward()
@@ -94,6 +94,7 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
+            flow[flow > 0.5] = 1
             self.train_evaluator.add_batch(sr=sr, hr=hr, flow=flow)
             hr,lr,flow = train_prefetcher.next()
 
@@ -141,8 +142,8 @@ class Trainer():
         i = 1
         while hr is not None:
             with torch.no_grad():
-                sr,terrain_line,hr_line = self.model(lr,hr)
-                val_loss = self.loss.criterion(sr, hr) + self.loss.criterion(terrain_line, hr_line)
+                sr = self.model(lr)
+                val_loss = self.loss.terrain_criterion(sr, hr, flow)
                 # total_loss = l1_loss + slope_loss
             # val_loss += total_loss.item()
             # val_L1_loss += l1_loss.item()
@@ -154,6 +155,7 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
+            flow[flow > 0.5] = 1
             self.val_evaluator.add_batch(sr=sr, hr=hr, flow = flow)
                 
             i += 1

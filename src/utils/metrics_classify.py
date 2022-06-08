@@ -74,7 +74,7 @@ class Evaluator(object):
         return confusion_matrix
 
     def add_batch(self,label,pred):
-        # pred = pred.astype(np.uint8)
+        pred = pred.astype(np.uint8)
         if label.shape != pred.shape:
             label = np.squeeze(label,axis=1)
         assert label.shape == pred.shape

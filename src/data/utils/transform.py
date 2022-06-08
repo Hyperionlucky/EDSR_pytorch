@@ -47,7 +47,7 @@ class Totensor(object):
         lr = torch.from_numpy(lr)
         lr = lr.permute(2, 0, 1)
 
-        flow = flow[:, :, np.newaxis]
+        flow = flow[:, :, np.newaxis].astype(np.float32)
         flow = torch.from_numpy(flow)
         flow = flow.permute(2, 0, 1)
 

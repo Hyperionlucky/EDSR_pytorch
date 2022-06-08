@@ -10,5 +10,5 @@ class Model(nn.Module):
         print('making model……')
         module = import_module('model.' + args.model.lower())
         self.model = module.make_model(args)
-    def forward(self, x, y):
-        return self.model(x,y)
+    def forward(self, x):
+        return self.model(x)

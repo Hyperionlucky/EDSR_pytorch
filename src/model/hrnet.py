@@ -25,10 +25,10 @@ class HRNet(nn.Module):
         super(HRNet, self).__init__()
         self.semantic_backbone = HRNet32(
             pretrained_path=None, norm_layer=None)
-        self.head = FCNHead(480, 3)
-    def forward(self, img):
+        self.head = FCNHead(480, 1)
+    def forward(self, img, hr):
         img_feature = self.semantic_backbone(img)
         out = self.head(img_feature)
-        out = F.interpolate(out, size=img.size()[2:], mode="bicubic", align_corners=False)
+        out = F.interpolate(out, scale_factor=4, mode="bicubic", align_corners=False)
 
         return out

@@ -52,8 +52,8 @@ class Trainer():
         self.writer = self.summary.create_summart()
         self.train_iters_epoch = len(self.loader_train)
         self.val_iters_epoch = len(self.loader_test)
-        self.train_evaluator = Evaluator(3)
-        self.val_evaluator = Evaluator(3)
+        self.train_evaluator = Evaluator(2)
+        self.val_evaluator = Evaluator(2)
 
         if torch.cuda.is_available():
             self.model = torch.nn.DataParallel(self.model, device_ids=self.args.gpu_ids)
@@ -67,12 +67,12 @@ class Trainer():
         self.train_evaluator.reset()
         self.model.train()                                         #设置train属性为true
         train_prefetcher = prefetcher.DataPrefetcher(self.loader_train)
-        hr,_,terrain_line = train_prefetcher.next()
+        hr,lr,terrain_line = train_prefetcher.next()
         i = 1
         while hr is not None:
             self.optimizer.zero_grad()
-            hr_seg = self.model(hr)
-            total_loss = self.loss.CrossEntropyLoss(hr_seg, terrain_line)
+            hr_seg = self.model(hr,lr)
+            total_loss = self.loss.BCELoss(hr_seg, terrain_line) + self.loss.dice_loss(hr_seg, terrain_line)
             
 
             # total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
@@ -90,12 +90,14 @@ class Trainer():
                 print(msg)
                 logging.info(msg=msg)
             i += 1
-            hr_seg = hr_seg.data.cpu().numpy()
-            hr_seg = np.argmax(hr_seg, axis=1)
-            hr_seg = hr_seg[:, np.newaxis, :, :]
+            binary_pred = torch.sigmoid(hr_seg)
+            binary_pred = binary_pred.data.cpu().numpy()
+            binary_pred[binary_pred > 0.5] = 1
+            binary_pred[binary_pred <= 0.5] = 0
+            # binary_pred = torch.from_numpy(binary_pred).cuda()
             terrain_line = terrain_line.data.cpu().numpy()
-            self.train_evaluator.add_batch(label=terrain_line, pred=hr_seg)
-            hr,_,terrain_line = train_prefetcher.next()
+            self.train_evaluator.add_batch(label=terrain_line, pred=binary_pred)
+            hr,lr,terrain_line = train_prefetcher.next()
 
             
         mIoU_class, mIoU = self.train_evaluator.Mean_Intersection_over_Union()
@@ -133,22 +135,24 @@ class Trainer():
         self.model.eval()                                            #设置train为false
 
         val_prefetcher = prefetcher.DataPrefetcher(self.loader_test)
-        hr,_,terrain_line = val_prefetcher.next()
+        hr,lr,terrain_line = val_prefetcher.next()
         # flops,params = profile(self.model, inputs=(lr,))
         # flops,params = clever_format([flops, params], "%.3f")
         i = 1
         while hr is not None:
             with torch.no_grad():
-                hr_seg = self.model(hr)
-                val_loss = self.loss.CrossEntropyLoss(hr_seg, terrain_line)
-            hr_seg = hr_seg.data.cpu().numpy()
-            hr_seg = np.argmax(hr_seg, axis=1)
-            hr_seg = hr_seg[:, np.newaxis, :, :]
+                hr_seg = self.model(hr,lr)
+                val_loss = self.loss.BCELoss(hr_seg, terrain_line)
+            binary_pred = torch.sigmoid(hr_seg)
+            binary_pred = binary_pred.data.cpu().numpy()
+            binary_pred[binary_pred > 0.5] = 1
+            binary_pred[binary_pred <= 0.5] = 0
+            # binary_pred = torch.from_numpy(binary_pred).cuda()
             terrain_line = terrain_line.data.cpu().numpy()
-            self.val_evaluator.add_batch(label=terrain_line, pred=hr_seg)
+            self.val_evaluator.add_batch(label=terrain_line, pred=binary_pred)
                 
             i += 1
-            hr,_,terrain_line = val_prefetcher.next()
+            hr,lr,terrain_line = val_prefetcher.next()
 
         mIoU_class, mIoU = self.val_evaluator.Mean_Intersection_over_Union()
         precision, recall, F1_class, F1 = self.val_evaluator.F1_score()
