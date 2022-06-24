@@ -71,7 +71,7 @@ class Trainer():
         while hr is not None:
             self.optimizer.zero_grad()
             sr = self.model(lr)
-            total_loss = self.loss.terrain_criterion(sr, hr, flow)
+            total_loss = self.loss.criterion(sr, hr)
 
             # total_loss = self.args.loss_weight[0] * l1_loss + self.args.loss_weight[1]* slope_loss
             total_loss.backward()
@@ -94,7 +94,7 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
-            flow[flow > 0.5] = 1
+            # flow[flow > 0.5] = 1
             self.train_evaluator.add_batch(sr=sr, hr=hr, flow=flow)
             hr,lr,flow = train_prefetcher.next()
 
@@ -143,7 +143,7 @@ class Trainer():
         while hr is not None:
             with torch.no_grad():
                 sr = self.model(lr)
-                val_loss = self.loss.terrain_criterion(sr, hr, flow)
+                val_loss = self.loss.criterion(sr, hr)
                 # total_loss = l1_loss + slope_loss
             # val_loss += total_loss.item()
             # val_L1_loss += l1_loss.item()
@@ -155,7 +155,7 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
-            flow[flow > 0.5] = 1
+            # flow[flow > 0.5] = 1
             self.val_evaluator.add_batch(sr=sr, hr=hr, flow = flow)
                 
             i += 1
@@ -188,9 +188,16 @@ class Trainer():
             if new_pred < self.best_pred:
                 is_best = True
                 self.best_pred = new_pred
+                metric_dict = {
+                    "MSE": mse,
+                    "MAE": mae,
+                    "RMSE": rmse,
+                    "E_MAX": e_max,
+                    "Flow_MAE": flow_mae,
+                }
                 self.saver.save_checkpoint({'epoch': epoch + 1,
                 'state_dict': self.model.module.state_dict(),
                 'optimizer': self.optimizer.state_dict(),
                 'scheduler': self.lr_scheduler.state_dict(),
-                'best_pred': self.best_pred}, is_best=is_best)
+                'best_pred': self.best_pred}, is_best=is_best, results=metric_dict)
 

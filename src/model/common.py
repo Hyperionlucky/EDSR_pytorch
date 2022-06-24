@@ -50,8 +50,8 @@ class MeanShift(nn.Conv2d):
 
 class BasicBlock(nn.Sequential):
     def __init__(
-            self, conv, in_channels, out_channels, kernel_size, stride=1, bias=False,
-            bn=True, act=nn.ReLU(True)):
+            self, conv, in_channels, out_channels, kernel_size, stride=1, bias=True,
+            bn=False, act=nn.ReLU(True)):
         m = [conv(in_channels, out_channels, kernel_size, bias=bias)]
         if bn:
             m.append(nn.BatchNorm2d(out_channels))
@@ -220,6 +220,21 @@ class RCAB(nn.Module):
         res += x
         return res
 
+class ResidualGroup(nn.Module):
+    def __init__(self, conv, n_feat, kernel_size, reduction, n_resblocks):
+        super(ResidualGroup, self).__init__()
+        modules_body = []
+        modules_body = [
+            RCAB(
+                conv, n_feat, kernel_size, reduction, bias=True, bn=False, act=nn.ReLU(True), res_scale=1) \
+            for _ in range(n_resblocks)]
+        modules_body.append(conv(n_feat, n_feat, kernel_size))
+        self.body = nn.Sequential(*modules_body)
+
+    def forward(self, x):
+        res = self.body(x)
+        res += x
+        return res
 
 class DownBlock(nn.Module):
     def __init__(self, opt, scale, nFeat=None, in_channels=None, out_channels=None):
@@ -437,3 +452,44 @@ class RFA_NoTail(nn.Module):
             tmp, x = self.RFA[index](x)
             res_feature.append(tmp)
         return torch.cat(res_feature, dim=1)
+
+
+
+
+
+# RDN
+class DenseLayer(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(DenseLayer, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=3 // 2)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        return torch.cat([x, self.relu(self.conv(x))], 1)
+
+class RDB(nn.Module):
+    def __init__(self, in_channels, growth_rate, num_layers):
+        super(RDB, self).__init__()
+        self.layers = nn.Sequential(*[DenseLayer(in_channels + growth_rate * i, growth_rate) for i in range(num_layers)])
+
+        # local feature fusion
+        self.lff = nn.Conv2d(in_channels + growth_rate * num_layers, growth_rate, kernel_size=1)
+
+    def forward(self, x):
+        return x + self.lff(self.layers(x))  # local residual learning
+
+
+class EResidualGroup(nn.Module):
+    def __init__(self, conv, n_feat, n_resblocks,scale = 1):
+        super(EResidualGroup, self).__init__()
+        modules_body = []
+        modules_body = [
+            RFA(conv, n_feat, scale)
+            for _ in range(n_resblocks)]
+        modules_body.append(conv(n_feat, n_feat, scale))
+        self.body = nn.Sequential(*modules_body)
+
+    def forward(self, x):
+        res = self.body(x)
+        res += x
+        return res

@@ -19,7 +19,7 @@ parser.add_argument('--gpu-ids', type=list, default=[0], help="use which gpu in 
 # Data specifications
 # parser.add_argument('--dir_data', type=str, default='home/corn/SRdataset/DIV2K',
 
-parser.add_argument('--scale', type=int, default=2,
+parser.add_argument('--scale', type=int, default=4,
                     help='super resolution scale')
 parser.add_argument('--patch_size', type=int, default=96,
                     help='output patch size')
@@ -59,7 +59,7 @@ parser.add_argument('--precision', type=str, default='single',
                     help='FP precision for test (single | half)')
 parser.add_argument('--test_only',  default=False, help='is test or not')
 # parser.add_argument('--resume', type=str,
-                    # default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X2/RFAN/experiment_other/checkpoint.pth", help='checkpoint name')
+#                     default="/home/cgd/DEM/ESDR_Pytorch/EDSR_pytorch/experiments_USA/X4/RFAN/experiment_12/checkpoint.pth", help='checkpoint name')
 parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
 # DRN model config
 parser.add_argument('--n_blocks', type=int, default=40, help="number of DRN blocks")
@@ -106,7 +106,7 @@ parser.add_argument('--epsilon', type=float, default=1e-8,
 
 
 # Loss specifications
-parser.add_argument('--loss_weight', type=list, default=[2,1],
+parser.add_argument('--loss_weight', type=list, default=[1,2],
                     help='loss function weight')
 parser.add_argument('--isDual', type=bool, default=False)
 # Log specifications

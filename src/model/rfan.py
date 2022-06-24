@@ -38,8 +38,9 @@ class RFAN(nn.Module):
         # attention = nn.Sequential(NonLocalAttention(conv=conv, channel=n_features * 4, reduction=4),
         # conv(n_features * 4,n_features,1)
         #   )
-        m_body = RFA_Block(conv=conv, n_features=n_features,
-                           scale=scale, num_blocks=self.n_rfanblocks, act=act)  # 卷积层
+        m_body = [ common.EResidualGroup(conv=conv, n_feat=n_features, n_resblocks=10) for _ in range(3)]
+        # RFA_Block(conv=conv, n_features=n_features,
+                        #    scale=scale, num_blocks=self.n_rfanblocks, act=act)  # 卷积层
         # m_body.append()
         # define tail module
         m_tail = [
@@ -48,8 +49,13 @@ class RFAN(nn.Module):
             conv(n_features, args.n_channels, 3)
         ]
 
+        # self.terrain_tail = nn.Sequential(
+        #     conv(args.n_channels, n_features, 3),
+        #     common.RFA(conv = conv, n_features=n_features,scale=scale),
+        #     conv(n_features, args.n_channels, 3))
+
         self.head = nn.Sequential(*m_head)
-        self.body = nn.Sequential(m_body)
+        self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
         # self.model_cls = HRNet(args=args)
         common.weight_init(self)
@@ -63,7 +69,6 @@ class RFAN(nn.Module):
         # x = self.sub_mean(x)
         # x = lr
         x = self.head(lr)
-        # results = self.head(lr)
         res = self.body(x)
 
         res += x
@@ -73,7 +78,6 @@ class RFAN(nn.Module):
         # terrain_line = self.model_cls(results)
         # hr_line = self.model_cls(hr)
         return results
-        # return results
 
 
 class RFA_Block(nn.Module):

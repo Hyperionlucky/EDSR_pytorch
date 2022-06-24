@@ -1,11 +1,13 @@
 import torch.nn as nn
 import torch
+from loss.slope_loss import SlopeLossFunc
 
 
 class Loss(object):
     def __init__(self, weight=None):
         super(Loss, self).__init__()
         self.weight = weight
+        self.slope_loss = SlopeLossFunc(epsilon=1e-8)
 
     def criterion(self, sr, hr):
         # loss1 = self.L1Loss(sr*flow, hr*flow)
@@ -19,14 +21,16 @@ class Loss(object):
         return criterion(sr, hr)
 
     def terrain_criterion(self, sr, hr, terrain):
-        loss = self.L1Loss(sr,hr)
+        # loss = self.L1Loss(sr,hr)
+        # slope_loss = self.slope_loss(sr,hr)
         terrain = terrain.data.cpu().numpy()
-        terrain[terrain > 0.5] = 1
+        # terrain[terrain > 0.5] = 1
         terrain = torch.from_numpy(terrain).cuda()
         loss1 = self.L1Loss(sr*terrain, hr*terrain)
-        # terrain_reverse = torch.abs(terrain - 1)
-        # loss2 = self.L1Loss(sr*terrain_reverse, hr*terrain_reverse)
-        return loss1 * self.weight[1] + loss
+        terrain_reverse = torch.abs(terrain - 1)
+        loss2 = self.L1Loss(sr*terrain_reverse, hr*terrain_reverse)
+        return loss1  + 2*loss2
+        # return loss
 
     def L1Loss(self, sr, hr):
         criterion = nn.L1Loss()

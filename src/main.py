@@ -20,8 +20,8 @@ torch.manual_seed(args.seed)
 def main():
     global model
 
-    train_dataset_path = args.dataset_dir + "train_" + str(args.scale) +"x_terrain.txt"
-    val_dataset_path = args.dataset_dir + "val_" + str(args.scale) +"x_terrain.txt"
+    train_dataset_path = args.dataset_dir + "train_" + str(args.scale) +"x_flow.txt"
+    val_dataset_path = args.dataset_dir + "val_" + str(args.scale) +"x_flow.txt"
     train_dataset = DemDataset(train_dataset_path,
                               mode="train", crop_size=args.patch_size, scale=args.scale, reverse=True)
     val_dataset = DemDataset(val_dataset_path, mode="val", crop_size=192, scale = args.scale)
@@ -35,22 +35,6 @@ def main():
         "num_train": train_dataset.__len__(),
         "num_val": val_dataset.__len__(),
     }
-    # if args.model == "EDSR_Slope":
-    #     from model.DemSR import DemSR
-    #     _model = DemSR(args)
-    # if args.model == "DRN":
-    #     from model.drn import DRN
-    #     _model = DRN(args=args)
-    # if args.model == "EDSR":
-    #     from model.Edsr import EDSR
-    #     _model = EDSR(args)
-    # if args.model in ["nearest","bilinear","bicubic"]:
-    #     from model.benchmark import Benchmark
-    #     _model = Benchmark(args=args)
-    # if args.model == "RFAN":
-    #     from model.rfan import RFAN
-    #     _model = RFAN(args=args) 
-    # # print(_model)
     _model = model.Model(args=args)
     _loss = Loss(weight=args.loss_weight)
     if args.isDual:

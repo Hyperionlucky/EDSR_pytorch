@@ -14,10 +14,10 @@ class SlopeLossFunc(nn.Module):
         hr_offset_x = hr[:, :, :, 2:]
         sr_offset_y = sr[:, :, 2:, :]
         hr_offset_y = hr[:, :, 2:, :]
-        hr_diff_x = (hr[:, :, :, :-2] - hr_offset_x)[:,:,:-2,:] / 25
-        sr_diff_x = (sr[:, :, :, :-2] - sr_offset_x)[:,:,:-2,:] / 25
-        hr_diff_y = (hr[:, :, :-2, :] - hr_offset_y)[:,:,:,:-2] / 25
-        sr_diff_y = (sr[:, :, :-2, :] - sr_offset_y)[:,:,:,:-2] / 25
+        hr_diff_x = (hr[:, :, :, :-2] - hr_offset_x)[:,:,:-2,:] / 20
+        sr_diff_x = (sr[:, :, :, :-2] - sr_offset_x)[:,:,:-2,:] / 20
+        hr_diff_y = (hr[:, :, :-2, :] - hr_offset_y)[:,:,:,:-2] / 20
+        sr_diff_y = (sr[:, :, :-2, :] - sr_offset_y)[:,:,:,:-2] / 20
         assert hr_diff_x.size() == hr_diff_y.size()
         assert sr_diff_x.size() == sr_diff_y.size()
         hr_slope = self.__cacSlope(hr_diff_x, hr_diff_y, self.eps)

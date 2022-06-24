@@ -17,7 +17,7 @@ class Saver(object):
         self.experiment_dir = os.path.join(self.directory,'experiment_{}'.format(str(run_id)))
         if not os.path.exists(self.experiment_dir):
             os.makedirs(self.experiment_dir)
-    def save_checkpoint(self, state, is_best, filename='checkpoint.pth',best_filename="best_val.txt"):
+    def save_checkpoint(self, state, is_best, results,filename='checkpoint.pth',best_filename="best_val.txt"):
         filename = os.path.join(self.experiment_dir,filename)
         torch.save(state, filename)
         if is_best:
@@ -25,6 +25,8 @@ class Saver(object):
             epoch = state['epoch']
             with open(os.path.join(self.experiment_dir,best_filename),"a") as f:
                 f.write(str(best_pred)+"--------------"+str(epoch)+"\n")
+            with open(os.path.join(self.experiment_dir, "best_metrics.txt"), "w") as f:
+                f.write("Metrics:" + "\n" +str(results) + "\n")
 
     def save_experiment_config(self):
         log_file = os.path.join(self.experiment_dir, "parameters.txt")

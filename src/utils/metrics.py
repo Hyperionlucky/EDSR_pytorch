@@ -1,7 +1,6 @@
-from unittest import result
 import numpy as np
 import math
-
+import random
 import torch
 
 RGB_RANGE = 4294967296
@@ -64,18 +63,14 @@ class Evaluator(object):
     # def add_batch(self, hr, sr):
     # sr = sr.astype(np.uint8)
 if __name__ == '__main__':
-    a = np.random.randn(16,1,192,192)
-    b = a[:,:,:,:]
-    a[a>0.5] = 1
-    a[a<=0.5] = 0
-    for i in range(1,1):
-        i = 1
-    ev = Evaluator(16, 65535)
-    for i in range(20):
-        hr = np.random.randn(16, 1, 192, 192)
-        sr = np.random.randn(16, 1, 192, 192)
-        ev.add_batch(sr, hr)
-    mse, psnr, mae, rmse, e_max, slope_mae = ev.score(20)
+    mse, psnr, mae, rmse, e_max, slope_mae = [random.randint(0,9)  for _ in range(6)]
+    metric_dict = {
+        "MSE": mse,
+        "PSNR": psnr,
+        "MAR": mae,
+    }
+    with open("best_metrics.txt", "w") as f:
+        f.write(str(metric_dict))
     # mse = mse + 1 + 2 + 3
     # hr =  torch.randn(16,1,192,192)
     c = 1
