@@ -38,10 +38,11 @@ class RFAN(nn.Module):
         # attention = nn.Sequential(NonLocalAttention(conv=conv, channel=n_features * 4, reduction=4),
         # conv(n_features * 4,n_features,1)
         #   )
-        m_body = [ common.EResidualGroup(conv=conv, n_feat=n_features, n_resblocks=10) for _ in range(3)]
-        # RFA_Block(conv=conv, n_features=n_features,
-                        #    scale=scale, num_blocks=self.n_rfanblocks, act=act)  # 卷积层
-        # m_body.append()
+        m_body = [ 
+            # common.EResidualGroup(conv=conv, n_feat=n_features, n_resblocks=10) for _ in range(3)]
+        RFA_Block(conv=conv, n_features=n_features,
+                           scale=scale, num_blocks=self.n_rfanblocks, act=act) ] # 卷积层
+        # m_body.append(conv(n_features, n_features, 3))
         # define tail module
         m_tail = [
             conv(n_features, n_features, 3),

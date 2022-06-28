@@ -11,10 +11,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class DemDataset(Dataset):
-    def __init__(self, datapath, mode="train", crop_size=96, scale=2, reverse=False):
+    def __init__(self, data_path, mode="train", crop_size=96, scale=2, reverse=False):
         super(DemDataset, self).__init__()
         self.mode = mode
-        with open(datapath, "r", errors='ignore') as lines:
+        with open(data_path, "r", errors='ignore') as lines:
             self.samples = []
             for line in lines:
                 hr_path = line.strip().split(" ")[0]

@@ -20,8 +20,8 @@ torch.manual_seed(args.seed)
 def main():
     global model
 
-    train_dataset_path = args.dataset_dir + "train_" + str(args.scale) +"x_flow.txt"
-    val_dataset_path = args.dataset_dir + "val_" + str(args.scale) +"x_flow.txt"
+    train_dataset_path = args.dataset_dir + "train_" + str(args.scale) +"x_terrain.txt"
+    val_dataset_path = args.dataset_dir + "val_" + str(args.scale) +"x_terrain.txt"
     train_dataset = DemDataset(train_dataset_path,
                               mode="train", crop_size=args.patch_size, scale=args.scale, reverse=True)
     val_dataset = DemDataset(val_dataset_path, mode="val", crop_size=192, scale = args.scale)

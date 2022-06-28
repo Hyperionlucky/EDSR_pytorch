@@ -39,7 +39,7 @@ class Saver(object):
         p['workers'] = self.args.workers
         p['epochs'] = self.args.epochs
         p['scale'] = self.args.scale
-        p['loss'] = str(self.args.loss_weight[0]) + ' *FLOW LINE   ' + str(self.args.loss_weight[1]) + ' *NOT FLOW'
+        p['loss'] = str(self.args.loss_weight[0]) + ' *Slope   ' + str(self.args.loss_weight[1]) + ' *Terrain'
         p['patch_size'] = self.args.patch_size
         p['dual'] = self.args.isDual
         for key,val in p.items():

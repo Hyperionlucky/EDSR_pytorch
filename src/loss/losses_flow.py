@@ -20,16 +20,18 @@ class Loss(object):
         criterion = nn.L1Loss()
         return criterion(sr, hr)
 
-    def terrain_criterion(self, sr, hr, terrain):
-        # loss = self.L1Loss(sr,hr)
-        # slope_loss = self.slope_loss(sr,hr)
-        terrain = terrain.data.cpu().numpy()
-        # terrain[terrain > 0.5] = 1
-        terrain = torch.from_numpy(terrain).cuda()
-        loss1 = self.L1Loss(sr*terrain, hr*terrain)
-        terrain_reverse = torch.abs(terrain - 1)
-        loss2 = self.L1Loss(sr*terrain_reverse, hr*terrain_reverse)
-        return loss1  + 2*loss2
+    def terrain_criterion(self, sr, hr, terrain, epoch):
+        loss = self.L1Loss(sr,hr)
+        slope_loss = self.slope_loss(sr,hr)
+        if epoch < 300 :
+            return loss + self.weight[0] * slope_loss
+        else: 
+            terrain = terrain.data.cpu().numpy()
+            terrain[terrain > 0.5] = 1
+            terrain = torch.from_numpy(terrain).cuda()
+            loss1 = self.L1Loss(sr*terrain, hr*terrain)  \
+            # + self.slope_loss(sr*terrain, hr*terrain)
+            return loss + self.weight[0] * slope_loss + self.weight[1] * loss1
         # return loss
 
     def L1Loss(self, sr, hr):
