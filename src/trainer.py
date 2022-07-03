@@ -94,7 +94,8 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
-            flow[flow > 0.5] = 1
+            flow[flow == 1] = 0
+            flow[flow == 2] = 1
             self.train_evaluator.add_batch(sr=sr, hr=hr, flow=flow)
             hr,lr,flow = train_prefetcher.next()
 
@@ -155,7 +156,8 @@ class Trainer():
             sr = sr.data.cpu().numpy()
             hr = hr.data.cpu().numpy()
             flow = flow.data.cpu().numpy()
-            flow[flow > 0.5] = 1
+            flow[flow == 1] = 0
+            flow[flow == 2] = 1
             self.val_evaluator.add_batch(sr=sr, hr=hr, flow = flow)
                 
             i += 1

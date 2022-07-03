@@ -26,15 +26,16 @@ class Evaluator(object):
         psnr = -10 * np.log10(mse/(self.rgb_range**2))
         mae = np.mean((np.abs(diff)), axis=(2, 3))
         rmse = np.sqrt(mse)
-        flow_mae = np.mean((np.abs(diff * flow)), axis=(2,3))
+        terrain_num = np.sum(flow == 1, axis = (2,3))
+        terrain_num[terrain_num == 0 ] = 1
+        flow_mae = np.sum((np.abs(diff * flow)), axis=(2,3)) / terrain_num
         e_max = np.max(np.abs(diff), axis=(2, 3))
         return [mse, mae, rmse, e_max, flow_mae, psnr]
 
     def add_batch(self, sr, hr, flow):
         assert hr.shape == sr.shape
         # slope_mae = self.cac_slope_mae(sr, hr)
-        diff = (hr - sr)[:, :, 2:-2, 2:-2]
-        flow = flow[:, :, 2:-2, 2:-2]
+        diff = hr - sr
         matrix = self.__generate_matrix(diff=diff, flow=flow)
         # matrix.insert(4, slope_mae)
         self.metric_matrix = [i + j for i,j in zip(self.metric_matrix, matrix)]

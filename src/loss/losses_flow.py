@@ -27,9 +27,11 @@ class Loss(object):
             return loss + self.weight[0] * slope_loss
         else: 
             terrain = terrain.data.cpu().numpy()
-            terrain[terrain > 0.5] = 1
+            terrain[terrain == 1] = 0
+            terrain[terrain == 2] = 1
             terrain = torch.from_numpy(terrain).cuda()
-            loss1 = self.L1Loss(sr*terrain, hr*terrain)  \
+            # loss1 = self.L1Loss(sr*terrain, hr*terrain)
+            loss1 = self.terrain_loss(sr-hr, terrain)
             # + self.slope_loss(sr*terrain, hr*terrain)
             return loss + self.weight[0] * slope_loss + self.weight[1] * loss1
         # return loss
@@ -60,4 +62,12 @@ class Loss(object):
 
         loss = criterion(logit, target.long())
 
+        return loss
+        
+
+    def terrain_loss(self, diff, terrain):
+        terrain_num = torch.sum(terrain>0.5)
+        diff_flow = torch.sum(torch.abs(diff * terrain))
+        terrain_num = terrain_num if terrain_num != 0 else 1
+        loss = diff_flow / terrain_num
         return loss
