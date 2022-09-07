@@ -12,7 +12,7 @@ class SRCNN(nn.Module):
         conv = common.default_conv
         
         # n_resblocks = args.n_resblocks
-        n_features = args.n_features
+        n_features = 64
         act = nn.ReLU(True)
 
         self.scale = args.scale

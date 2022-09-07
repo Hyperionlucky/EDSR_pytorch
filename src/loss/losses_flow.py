@@ -4,10 +4,10 @@ from loss.slope_loss import SlopeLossFunc
 
 
 class Loss(object):
-    def __init__(self, weight=None):
+    def __init__(self, weight=None, scale = 3):
         super(Loss, self).__init__()
         self.weight = weight
-        self.slope_loss = SlopeLossFunc(epsilon=1e-8)
+        self.slope_loss = SlopeLossFunc(epsilon=1e-8, scale=scale)
 
     def criterion(self, sr, hr):
         # loss1 = self.L1Loss(sr*flow, hr*flow)
