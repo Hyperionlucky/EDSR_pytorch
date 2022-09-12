@@ -1,9 +1,13 @@
 from collections import OrderedDict
+from cv2 import norm
 import torch
 from model import common
 from model.utils.attention import NonLocalAttention
 import torch.nn as nn
 from model.hrnet import HRNet
+import matplotlib as mpl
+from matplotlib import pyplot as plt
+import pandas as pd
 
 
 def make_model(args):
@@ -50,21 +54,10 @@ class RFAN(nn.Module):
             conv(n_features, args.n_channels, 3)
         ]
 
-        # self.terrain_tail = nn.Sequential(
-        #     conv(args.n_channels, n_features, 3),
-        #     common.RFA(conv = conv, n_features=n_features,scale=scale),
-        #     conv(n_features, args.n_channels, 3))
-
         self.head = nn.Sequential(*m_head)
         self.body = nn.Sequential(*m_body)
         self.tail = nn.Sequential(*m_tail)
-        # self.model_cls = HRNet(args=args)
         common.weight_init(self)
-        # for child in self.model_cls.children():
-        #     for param in child.parameters():
-        #         param.requires_grad = False
-        # if args.pretrained_path is not None:
-        #     self.model_cls = load_model(self.model_cls, args.pretrained_path)
 
     def forward(self, lr):
         # x = self.sub_mean(x)
@@ -95,12 +88,24 @@ class RFA_Block(nn.Module):
         self.tail = nn.Sequential(conv(n_features*3, n_features, 1))
 
     def forward(self, x):
-        local_features = []
+        # local_features = []
+        # norm_list = []
         for i in range(self.num_blocks):
             x = self.body[i](x)
-            if (i+1) % 10 == 0:
-                local_features.append(x)
-        return self.tail(torch.cat(local_features, dim=1))
+            # if i % 2 == 0:
+            #     norm_list.append(weight_norm)
+            # if (i+1) % 10 == 0:
+                # local_features.append(x)
+        # 生成weight
+        # mpl.rcParams['font.sans-serif'] = "Times New Roman"
+        # # plt.rcParams['font.size'] = 12
+        # df = pd.DataFrame(norm_list,index=[str(i+1) for i in range(0,self.num_blocks,2)], columns=pd.Index(["Block 1", "Block 2", "Block 3", "Block 4"], name='Block index'))
+        # ax =  df.plot.bar(rot = 0)
+        # ax.set_ylabel('Norm Weight')
+        # ax.set_xlabel('RFM Index')
+        # fig = ax.get_figure()
+        # fig.savefig('test.tif',dpi=300)
+        return x
 
 
 class RFA_Attention(nn.Module):

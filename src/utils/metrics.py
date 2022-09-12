@@ -1,3 +1,5 @@
+import matplotlib as mpl
+from matplotlib import pyplot as plt
 import numpy as np
 import math
 import random
@@ -64,7 +66,17 @@ class Evaluator(object):
     # def add_batch(self, hr, sr):
     # sr = sr.astype(np.uint8)
 if __name__ == '__main__':
-    mse, psnr, mae, rmse, e_max, slope_mae = [random.randint(0,9)  for _ in range(6)]
+    import pandas as pd
+    # plt.rcParams['font.size'] = 20
+    mpl.rcParams['font.sans-serif'] = "Times New Roman"
+    df = pd.DataFrame(np.random.rand(6,4), index=['one','two','three', 'four', 'five', 'six'], columns=pd.Index(['A','B','C','D'], name='Genus'))
+    ax = df.plot(kind='bar',rot=0)
+    # plt.rc('font', family='Times New Roman')
+    
+    ax.set_ylabel('Weight',rotation=0, x=-0.5)
+    ax.set_xlabel('RFM Index')
+    plt.show()
+    mse, psnr, mae, rmse, e_max, slope_mae = [random.randint(0,9)  for _ in range(6)] / 5
     metric_dict = {
         "MSE": mse,
         "PSNR": psnr,

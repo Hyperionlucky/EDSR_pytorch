@@ -1,6 +1,3 @@
-# import imp
-# from asyncio.log import logger
-# import logging
 import time
 
 import torch
@@ -14,7 +11,6 @@ from loss.losses_flow import Loss
 from option import args
 
 torch.manual_seed(args.seed)
-# checkpoint = utility.checkpoint(args)
 
 
 def main():

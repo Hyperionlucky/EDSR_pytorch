@@ -455,7 +455,7 @@ class SAN(nn.Module):
         conv = common.default_conv
         
         n_resblocks = 10
-        n_feats = args.n_features
+        n_feats = 64
         act = nn.ReLU(True)
 
         scale = args.scale

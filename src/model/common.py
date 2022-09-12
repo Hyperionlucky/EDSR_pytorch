@@ -1,4 +1,5 @@
 import math
+from modulefinder import Module
 
 import torch
 import torch.nn as nn
@@ -180,7 +181,7 @@ class Upsampler(nn.Sequential):
 
         super(Upsampler, self).__init__(*m)
 
-
+# channel attention
 class CALayer(nn.Module):
     def __init__(self, channel, reduction=16):
         super(CALayer, self).__init__()
@@ -198,6 +199,25 @@ class CALayer(nn.Module):
         y = self.avg_pool(x)
         y = self.conv_du(y)
         return x * y
+
+# spatial attention
+class SALayer(nn.Module):
+    def __init__(self, channel, increase=2):
+        super(SALayer, self).__init__()
+        # global average pooling: feature --> point
+        # self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        # feature channel downscale and upscale --> channel weight
+        self.conv = nn.Sequential(
+            nn.Conv2d(channel, channel * increase, 1, padding=0, bias=True),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel * increase, 1, 1, padding=0, bias=True),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        # y = self.avg_pool(x)
+        y = self.conv(x)
+        return torch.mul(x,y)
 
 
 # Residual Channel Attention Block (RCAB)
@@ -404,7 +424,8 @@ class ERes(nn.Module):
             BasicBlock(conv, n_features, n_features, 3, act=act),
             conv(n_features, n_features, 3),
             # enhanced spatial attention
-            ESA(conv, n_features, act)
+            # ESA(conv, n_features, act)
+            SALayer(n_features)
             # RecurrentProjection(conv=default_conv,in_channel=n_features,scale=scale)
             # NonLocalAttention(conv=default_conv, channel=n_features)
         )
@@ -429,10 +450,17 @@ class RFA(nn.Module):
     def forward(self, x):
         feature = x
         res_feature = []
+        # weight_norm = []
         for index in range(self.n_resblocks):
             tmp, x = self.RFA[index](x)
             res_feature.append(tmp)
         res = self.tail(torch.cat(res_feature, dim=1))
+        # for i,feature in enumerate(res_feature):
+        #     res_feature[i] = torch.abs(feature) 
+        # feature_sum = torch.sum(torch.cat(res_feature, dim=1), dim=1, keepdim=True)
+        # for feature in res_feature:
+        #     weight_norm.append(torch.mean(torch.sum(torch.abs(feature),dim=1,keepdims = True) / feature_sum).item())
+        
         res += feature
         return res
 

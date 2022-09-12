@@ -15,7 +15,7 @@ class RDN(nn.Module):
 
         self.G0 = 64
         self.G = 64
-        self.D = 16
+        self.D = 30
         self.C = 8
         act = nn.ReLU(True)
 
