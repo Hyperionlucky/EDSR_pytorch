@@ -32,7 +32,7 @@ def main():
         "num_val": val_dataset.__len__(),
     }
     _model = model.Model(args=args)
-    _loss = Loss(weight=args.loss_weight)
+    _loss = Loss(weight=args.loss_weight,scale=args.scale)
     if args.isDual:
         from trainer_Dual import Trainer
         t = Trainer(args, loader, _model, _loss)

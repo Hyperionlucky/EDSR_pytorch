@@ -58,7 +58,6 @@ parser.add_argument('--precision', type=str, default='single',
                     choices=('single', 'half'),
                     help='FP precision for test (single | half)')
 parser.add_argument('--test_only', action="store_true", default=False, help='is test or not')
-
 parser.add_argument('--resume', type=str, default=None, help='checkpoint name')
 # DRN model config
 parser.add_argument('--n_blocks', type=int, default=40, help="number of DRN blocks")

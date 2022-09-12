@@ -51,8 +51,8 @@ class Trainer():
         self.writer = self.summary.create_summart()
         self.train_iters_epoch = len(self.loader_train)
         self.val_iters_epoch = len(self.loader_test)
-        self.train_evaluator = Evaluator(self.args.batch_size,self.args.rgb_range)
-        self.val_evaluator = Evaluator(self.args.test_batch_size,self.args.rgb_range)
+        self.train_evaluator = Evaluator(self.args.batch_size,self.args.rgb_range,self.args.scale)
+        self.val_evaluator = Evaluator(self.args.test_batch_size,self.args.rgb_range, self.args.scale)
 
         if torch.cuda.is_available():
             self.model = torch.nn.DataParallel(self.model, device_ids=self.args.gpu_ids)
@@ -100,7 +100,7 @@ class Trainer():
             hr,lr,flow = train_prefetcher.next()
 
             
-        mse, mae, rmse, e_max, flow_mae, psnr = self.train_evaluator.score(self.num_trainImage)
+        mse, mae, rmse, e_max, flow_mae, psnr, slope_mae = self.train_evaluator.score(self.num_trainImage)
 
         self.writer.add_scalar("train/learning_rate", self.optimizer.param_groups[0]["lr"], epoch)
         self.writer.add_scalar("train/loss_epoch", train_loss/(i+1), epoch)
@@ -109,7 +109,7 @@ class Trainer():
         self.writer.add_scalar("train/MAE", mae, epoch)
         self.writer.add_scalar("train/RMSE", rmse, epoch)
         self.writer.add_scalar("train/E_MAX", e_max, epoch)
-        # self.writer.add_scalar("train/Slope_MAE", slope_mae, epoch)
+        self.writer.add_scalar("train/Slope_MAE", slope_mae, epoch)
         self.writer.add_scalar("train/Flow_MAE", flow_mae, epoch)
         # 计算参数量
         params_num = sum(p.numel() for p in self.model.parameters())
@@ -117,12 +117,12 @@ class Trainer():
 
         print("Train:")
         print('[Epoch: %d, numImages: %5d]' % (epoch, self.num_trainImage))
-        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
+        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}, Slope_MAE:{}".format(mse, mae, rmse, e_max, flow_mae, psnr, slope_mae))
         print('Loss: %.3f' % (train_loss/i))
         print("Params: %.2fM" %(params_num / 1e6))
         logging.info("Train:")
         logging.info('[Epoch: %d, numImages: %5d]' % (epoch, self.num_trainImage))
-        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
+        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}, Slope_MAE:{}".format(mse, mae, rmse, e_max, flow_mae, psnr, slope_mae))
         logging.info('Loss: %.3f' %(train_loss / i))
         logging.info("Params: %.2fM" %(params_num / 1e6))
 
@@ -163,13 +163,13 @@ class Trainer():
             i += 1
             hr,lr,flow = val_prefetcher.next()
 
-        mse, mae, rmse, e_max, flow_mae, psnr = self.val_evaluator.score(self.num_valImage)
+        mse, mae, rmse, e_max, flow_mae, psnr, slope_mae = self.val_evaluator.score(self.num_valImage)
         print("Validation:")
         print('[Epoch: %d, numImages: %5d]' % (epoch, self.num_valImage))
-        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
+        print("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}, Slope_MAE:{}".format(mse, mae, rmse, e_max, flow_mae, psnr, slope_mae))
         logging.info("Validation:")
         logging.info('[Epoch: %d, numImages: %5d]' % (epoch, self.num_valImage))
-        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}".format(mse, mae, rmse, e_max, flow_mae, psnr))
+        logging.info("MSE:{}, MAE:{}, RMSE:{}, E_MAX:{}, Flow_MAE:{}, PSNR:{}, Slope_MAE:{}".format(mse, mae, rmse, e_max, flow_mae, psnr, slope_mae))
         # print('\nFLOPs: ',flops, 'Params: ', params)
         # logging.info("FLOPs:{}, Params: {}".format(flops,params))
         if not self.args.test_only:
@@ -180,6 +180,7 @@ class Trainer():
             self.writer.add_scalar("val/RMSE", rmse, epoch)
             self.writer.add_scalar("val/E_MAX", e_max, epoch)
             self.writer.add_scalar("val/Flow_MAE", flow_mae, epoch)
+            self.writer.add_scalar("val/Slope_MAE", slope_mae, epoch)            
             # 计算参数量
             params_num = sum(p.numel() for p in self.model.parameters())
             print('Loss: %.4f' % (val_loss/i))
